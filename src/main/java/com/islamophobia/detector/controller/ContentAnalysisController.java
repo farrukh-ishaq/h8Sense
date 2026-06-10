@@ -1,9 +1,12 @@
 package com.islamophobia.detector.controller;
 
+import com.islamophobia.detector.model.dto.ContentAnalysisRequest;
 import com.islamophobia.detector.model.dto.FeedbackRequest;
 import com.islamophobia.detector.model.dto.FeedbackResponse;
 import com.islamophobia.detector.model.entity.ContentAnalysis;
+import com.islamophobia.detector.model.entity.ContentItem;
 import com.islamophobia.detector.model.entity.UserFeedback;
+import com.islamophobia.detector.model.enums.SourceType;
 import com.islamophobia.detector.service.ContentAnalysisService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,28 @@ import java.util.UUID;
 public class ContentAnalysisController {
     
     private final ContentAnalysisService analysisService;
+    
+    /**
+     * Analyze new content with AI
+     */
+    @PostMapping("/content/analyze")
+    public ResponseEntity<ContentAnalysis> analyzeContent(
+            @RequestBody ContentAnalysisRequest request) {
+        log.info("Received content analysis request from platform: {}", request.getPlatform());
+        
+        // Create ContentItem from request
+        ContentItem contentItem = ContentItem.builder()
+            .content(request.getContent())
+            .sourcePlatform(request.getPlatform())
+            .sourceUrl(request.getUrl())
+            .author(request.getAuthor())
+            .build();
+        
+        // Process with AI
+        ContentAnalysis analysis = analysisService.processContent(contentItem);
+        
+        return ResponseEntity.ok(analysis);
+    }
     
     /**
      * Get all confirmed violations (feed generation)
