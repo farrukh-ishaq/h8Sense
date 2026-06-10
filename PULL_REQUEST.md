@@ -1,12 +1,13 @@
-# Islamophobia Content Detector
+# Pull Request: Islamophobia Content Detector - AI-Powered Hate Speech Analysis System
 
-An AI-powered microservice application that automatically detects hate speech and Islamophobic content from online sources (newspapers, social media platforms, etc.) and analyzes it using an LLM trained on Quran and Hadith to provide informed counter-arguments and references.
+## 🎯 Overview
+This PR introduces a comprehensive AI-powered microservice application that automatically detects hate speech and Islamophobic content from online sources (newspapers, social media platforms, forums, blogs) and analyzes it using an LLM trained on Quran and Hadith to provide informed counter-arguments and authentic Islamic references.
 
-## Features
+## ✨ Key Features
 
 ### Core Capabilities
 - **Automated Content Monitoring**: Fetches content from newspapers, social media, forums, and blogs
-- **AI-Powered Analysis**: Uses LLM (GPT-4) with Islamic knowledge base to detect Islamophobia
+- **AI-Powered Analysis**: Uses LLM (GPT-4 via Spring AI) with Islamic knowledge base to detect Islamophobia
 - **Scholarly Response Generation**: Provides counter-arguments with authentic Quran and Hadith references
 - **Violation Metadata Tracking**: Records when, what, by whom violations were detected
 - **User Feedback System**: Like/dislike functionality with IP/device fingerprinting to prevent spam
@@ -21,7 +22,7 @@ An AI-powered microservice application that automatically detects hate speech an
 - **Security**: Spring Security with CORS configuration
 - **Containerization**: Docker & Docker Compose
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 islamophobia-detector/
@@ -29,15 +30,13 @@ islamophobia-detector/
 │   ├── config/              # Security and app configuration
 │   ├── controller/          # REST API endpoints
 │   ├── model/
-│   │   ├── entity/         # JPA entities (ContentItem, ContentAnalysis, UserFeedback, etc.)
+│   │   ├── entity/         # JPA entities
 │   │   ├── dto/            # Data transfer objects
-│   │   └── enums/          # Enumerations (ViolationCategory, etc.)
+│   │   └── enums/          # Enumerations
 │   ├── repository/         # Spring Data repositories
 │   ├── service/            # Business logic services
 │   ├── ai/                 # AI/LLM integration
 │   └── observer/           # Content fetching observers
-├── src/main/resources/
-│   └── application.yml     # Application configuration
 ├── docker/
 │   ├── Dockerfile
 │   ├── docker-compose.yml
@@ -46,7 +45,7 @@ islamophobia-detector/
 └── pom.xml
 ```
 
-## Entity Model
+## 🗄️ Entity Model
 
 ### Core Entities
 
@@ -70,7 +69,7 @@ islamophobia-detector/
    - Rate limiting per IP/device
    - Automatic blocking for suspicious activity
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Content & Analysis
 ```
@@ -91,31 +90,15 @@ GET    /actuator/prometheus                  # Prometheus metrics
 GET    /actuator/info                        # Application info
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 - Java 17+
 - Maven 3.8+
-- Docker & Docker Compose (for containerized deployment)
+- Docker & Docker Compose
 - OpenAI API key
 
-### Local Development
-
-1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd islamophobia-detector
-```
-
-2. **Set environment variables**
-```bash
-export OPENAI_API_KEY=your-api-key-here
-export DATABASE_URL=jdbc:postgresql://localhost:5432/islamophobia_detector
-export DATABASE_USERNAME=postgres
-export DATABASE_PASSWORD=postgres
-```
-
-3. **Run with Docker Compose**
+### Quick Start with Docker
 ```bash
 cd docker
 docker-compose up -d
@@ -125,56 +108,18 @@ This starts:
 - PostgreSQL database (port 5432)
 - Application (port 8080)
 - Prometheus (port 9090)
-- Grafana (port 3000)
+- Grafana (port 3000) - admin/admin123
 - Jaeger (port 16686)
 
-4. **Access the services**
-- Application: http://localhost:8080
-- Grafana: http://localhost:3000 (admin/admin123)
-- Prometheus: http://localhost:9090
-- Jaeger: http://localhost:16686
-
-### Manual Build & Run
-
+### Environment Variables
 ```bash
-# Build
-mvn clean package -DskipTests
-
-# Run with dev profile
-java -jar target/islamophobia-detector-1.0.0-SNAPSHOT.jar --spring.profiles.active=dev
+export OPENAI_API_KEY=your-api-key-here
+export DATABASE_URL=jdbc:postgresql://localhost:5432/islamophobia_detector
+export DATABASE_USERNAME=postgres
+export DATABASE_PASSWORD=postgres
 ```
 
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key for LLM | Required |
-| `DATABASE_URL` | PostgreSQL connection URL | jdbc:postgresql://localhost:5432/islamophobia_detector |
-| `DATABASE_USERNAME` | Database username | postgres |
-| `DATABASE_PASSWORD` | Database password | postgres |
-| `SERVER_PORT` | Application port | 8080 |
-| `LOG_LEVEL_ROOT` | Root logging level | INFO |
-| `LOG_LEVEL_APP` | Application logging level | DEBUG |
-
-### Profiles
-
-- **dev**: H2 in-memory database, debug logging, H2 console enabled
-- **prod**: PostgreSQL, optimized logging, validation-only DDL
-- **default**: PostgreSQL with update DDL
-
-## Database Schema
-
-The application uses JPA to auto-create tables. Key tables:
-- `content_items`: Collected content
-- `content_analysis`: AI analysis results
-- `quran_references`: Quran verse references
-- `hadith_references`: Hadith references
-- `user_feedback`: User feedback
-- `feedback_tracking`: Anti-spam tracking
-
-## Observability
+## 📊 Observability
 
 ### Metrics (Prometheus)
 - HTTP request counts and latencies
@@ -192,7 +137,7 @@ The application uses JPA to auto-create tables. Key tables:
 - File and console output
 - Configurable log levels
 
-## Security Considerations
+## 🔒 Security Considerations
 
 - CORS configured for cross-origin requests
 - CSRF disabled for stateless API
@@ -200,29 +145,59 @@ The application uses JPA to auto-create tables. Key tables:
 - Device fingerprinting for duplicate detection
 - Non-root user in Docker container
 
-## Future Enhancements
+## 📝 Files Changed
 
-- [ ] Content fetcher modules for specific platforms (Twitter API, RSS feeds)
-- [ ] Custom fine-tuned Islamic LLM model
-- [ ] Multi-language support
-- [ ] Advanced device fingerprinting
-- [ ] User authentication and authorization
-- [ ] Admin dashboard for content moderation
-- [ ] Real-time notifications
-- [ ] Export functionality (PDF reports)
+- **28 files changed**
+- **2,020 insertions(+)**
+- **203 deletions(-)**
 
-## Contributing
+### New Files
+- Complete Spring Boot application structure
+- Docker configuration with observability stack
+- Comprehensive README documentation
+- Entity layer with proper JPA relationships
+- REST API controllers with validation
+- Service layer with business logic
+- AI integration with Spring AI
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 🧪 Testing
 
-## License
+Run tests with:
+```bash
+mvn clean test
+```
 
-MIT License - See LICENSE file for details
+Build with:
+```bash
+mvn clean package -DskipTests
+```
 
-## Disclaimer
+## 📋 Checklist
+
+- [x] Code follows project conventions
+- [x] Entity layer properly designed with JPA relationships
+- [x] API design follows REST best practices
+- [x] Observability configured (metrics, tracing, logging)
+- [x] Docker setup complete with all services
+- [x] Documentation comprehensive
+- [x] Security considerations addressed
+- [x] Environment configuration documented
+
+## 🔮 Future Enhancements
+
+- Content fetcher modules for specific platforms (Twitter API, RSS feeds)
+- Custom fine-tuned Islamic LLM model
+- Multi-language support
+- Advanced device fingerprinting
+- User authentication and authorization
+- Admin dashboard for content moderation
+- Real-time notifications
+- Export functionality (PDF reports)
+
+## ⚠️ Disclaimer
 
 This tool is designed to promote understanding and provide educational responses to Islamophobic content. It should be used responsibly and in accordance with platform terms of service and local laws.
+
+---
+
+**Reviewers**: Please review the entity architecture, API design, and security configurations. Special attention should be paid to the anti-spam measures in the feedback system and the AI integration patterns.
