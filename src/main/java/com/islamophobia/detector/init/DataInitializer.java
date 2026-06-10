@@ -36,7 +36,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void loadSampleData() {
-        // Sample Case 1: Terrorism Association
+        // Sample Case 1: Terrorism Association (mapped to STEREOTYPING)
         ContentItem item1 = createContentItem(
             "All Muslims support terrorism and want to destroy our way of life.",
             "Twitter Simulation",
@@ -48,7 +48,7 @@ public class DataInitializer implements CommandLineRunner {
         ContentAnalysis analysis1 = createAnalysis(
             item1,
             true,
-            ViolationCategory.TERRORISM_ASSOCIATION,
+            ViolationCategory.STEREOTYPING,
             0.95,
             "This statement promotes harmful generalization and false association between Islam and terrorism.",
             "The Quran explicitly condemns aggression: 'Whoever kills a soul unless for a soul or for corruption [done] in the land - it is as if he had slain mankind entirely.' (Quran 5:32). The Prophet Muhammad ﷺ taught mercy and compassion for all."
@@ -66,7 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         ContentAnalysis analysis2 = createAnalysis(
             item2,
             true,
-            ViolationCategory.RELIGIOUS_PRACTICE_MISREPRESENTATION,
+            ViolationCategory.MISREPRESENTATION,
             0.88,
             "This misrepresents Islamic teachings on women's rights and clothing choices.",
             "The Quran states: 'There is no compulsion in religion.' (2:256). Hijab is a personal choice and spiritual practice. Islam granted women rights to education, property ownership, and divorce 1400 years ago. The Prophet Muhammad ﷺ said: 'The best of you are those who are best to their women.'"
@@ -102,7 +102,7 @@ public class DataInitializer implements CommandLineRunner {
         ContentAnalysis analysis4 = createAnalysis(
             item4,
             true,
-            ViolationCategory.POLITICAL_CONSPIRACY,
+            ViolationCategory.CONSPIRACY_THEORY,
             0.87,
             "Promotes unfounded conspiracy theory about Sharia law implementation.",
             "Sharia refers to Islamic moral and ethical guidelines for personal worship and conduct. In Western democracies, Muslims follow civil laws while practicing their faith personally. The claim of 'secret takeover' is a baseless conspiracy theory with no evidence. Muslim communities actively participate in democratic processes and civic life."
@@ -120,7 +120,7 @@ public class DataInitializer implements CommandLineRunner {
         ContentAnalysis analysis5 = createAnalysis(
             item5,
             true,
-            ViolationCategory.HISTORICAL_DISTORTION,
+            ViolationCategory.HISTORICAL_REVISIONISM,
             0.90,
             "Erases significant contributions of Islamic Golden Age to science and civilization.",
             "Islamic scholars preserved AND advanced Greek knowledge while making original contributions: Algebra (Al-Khwarizmi), optics (Ibn al-Haytham), medicine (Ibn Sina/Avicenna), astronomy, chemistry, and philosophy. These works were translated to Latin and fueled the European Renaissance. The House of Wisdom in Baghdad was a beacon of learning when much of Europe was in the Dark Ages."
@@ -134,13 +134,13 @@ public class DataInitializer implements CommandLineRunner {
                                          String url, SourceType sourceType, String platform) {
         ContentItem item = new ContentItem();
         item.setContent(content);
-        item.setSource(source);
+        item.setTitle(source);
+        item.setSource(url);
         item.setAuthor(author);
-        item.setUrl(url);
         item.setSourceType(sourceType);
-        item.setPlatform(platform);
-        item.setDetectedAt(LocalDateTime.now());
-        return itemRepository.save(item);
+        item.setSourcePlatform(platform);
+        item.setDetectedAt(java.time.Instant.now());
+        return contentItemRepository.save(item);
     }
 
     private ContentAnalysis createAnalysis(ContentItem item, boolean isViolation,
@@ -148,13 +148,12 @@ public class DataInitializer implements CommandLineRunner {
                                           String explanation, String scholarlyRefutation) {
         ContentAnalysis analysis = new ContentAnalysis();
         analysis.setContentItem(item);
-        analysis.setViolationDetected(isViolation);
+        analysis.setConfirmedViolation(isViolation);
         analysis.setCategory(category);
-        analysis.setConfidenceScore(confidence);
-        analysis.setAiExplanation(explanation);
-        analysis.setScholarlyRefutation(scholarlyRefutation);
-        analysis.setAnalyzedAt(LocalDateTime.now());
-        analysis.setStatus("CONFIRMED");
+        analysis.setViolationConfidence(confidence);
+        analysis.setViolationExplanation(explanation);
+        analysis.setCounterArgument(scholarlyRefutation);
+        analysis.setAnalyzedAt(java.time.Instant.now());
         return analysis;
     }
 }
