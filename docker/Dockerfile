@@ -15,8 +15,8 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create non-root user for security (Debian/Ubuntu syntax)
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 # Copy built jar from build stage
 COPY --from=build /app/target/*.jar app.jar
