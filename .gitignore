@@ -1,1 +1,52 @@
-Nothing needs to be added to the .gitignore file based on the provided changes. The only modified file is a Java source file (.java), which should not be ignored. There are no build artifacts, dependencies, temporary files, or other items that require ignoring in the provided change list.
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.class
+*.o
+*.obj
+*.out
+dist/
+build/
+target/
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+.env
+.env.local
+*.env.*
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+
+# Java specific
+*.class
+target/
+.gradle/
+!docker/init.sql
+!src/main/java/com/islamophobia/detector/model/entity/ContentItem.java
