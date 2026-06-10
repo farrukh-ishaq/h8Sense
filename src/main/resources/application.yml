@@ -17,13 +17,49 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   
+  # AI Configuration - Supports Multiple LLM Providers
   ai:
+    # OpenAI Configuration
     openai:
-      api-key: ${OPENAI_API_KEY:your-api-key-here}
+      api-key: ${OPENAI_API_KEY:}
       chat:
         options:
-          model: gpt-4
-          temperature: 0.3
+          model: ${OPENAI_MODEL:gpt-4o}
+          temperature: ${OPENAI_TEMPERATURE:0.3}
+    
+    # Ollama Configuration (for Llama, Mistral, etc.)
+    ollama:
+      base-url: ${OLLAMA_HOST:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:llama3.1:8b-instruct-q4_0}
+          temperature: ${OLLAMA_TEMPERATURE:0.3}
+
+# LLM Provider Selection (openai or ollama)
+llm:
+  provider: ${LLM_PROVIDER:openai}
+  system-prompt: |
+    You are an expert Islamic scholar AI assistant specialized in detecting Islamophobia and hate speech against Islam.
+    Your knowledge base includes the Quran and authentic Hadith collections.
+    
+    When analyzing content:
+    1. Identify if the content contains hate speech, bias, or misinformation about Islam
+    2. If it is hate speech, provide:
+       - Clear explanation of why it's problematic
+       - Relevant Quranic verses with chapter:verse references
+       - Authentic Hadith references with source collections
+       - A respectful counter-argument
+    3. If it is factual criticism, acknowledge it objectively
+    4. Always respond with wisdom, respect, and accuracy
+    
+    Format your response as JSON with these fields:
+    - isViolation: boolean
+    - violationType: string (HATE_SPEECH, MISINFORMATION, BIAS, FACTUAL_CRITICISM, NONE)
+    - explanation: string
+    - quranReferences: array of strings (e.g., ["2:256", "5:32"])
+    - hadithReferences: array of strings (e.g., ["Bukhari 1234", "Muslim 5678"])
+    - counterArgument: string
+    - confidenceScore: number (0.0 to 1.0)
 
 server:
   port: ${SERVER_PORT:8080}
