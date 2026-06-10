@@ -1,52 +1,52 @@
 ```
-# Generated frontend files
-frontend/generated/
-
-# Java build artifacts
-target/
-
-# Environment variables
+# Environment
 .env
 .env.local
 *.env.*
 
-# IDE files
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+target/
+.gradle/
+
+# Build artifacts
+dist/
+build/
+*.pyc
+*.class
+*.o
+*.exe
+*.dll
+*.so
+*.a
+*.obj
+*.out
+
+# Editor/IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
 # Logs
 *.log
 
-# Temporary files
-*.tmp
-
-# Python cache (if any Python components)
-__pycache__/
-*.pyc
-
-# Node modules (if any frontend npm components)
-node_modules/
-
-# Coverage reports
+# Coverage
 coverage/
 htmlcov/
 .coverage
 
-# MyPy cache
-.mypy_cache/
+# OS
+.DS_Store
+Thumbs.db
 
-# Pytest cache
-.pytest_cache/
-
-# Gradle cache
-.gradle/
-
-# Maven cache
-.m2/
-
-# Compressed archives
+# Compressed files
 *.zip
 *.gz
 *.tar

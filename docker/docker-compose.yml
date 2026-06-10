@@ -32,7 +32,6 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: dev
       DATABASE_URL: jdbc:postgresql://postgres:5432/islamophobia_detector
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
