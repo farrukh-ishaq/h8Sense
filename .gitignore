@@ -1,17 +1,12 @@
 ```
-# Docker related
-.dockerenv
-Dockerfile.*
-!Dockerfile
-
 # Dependencies
-node_modules/
-vendor/
+target/
+.m2/
+.gradle/
 
 # Logs and temp files
 *.log
 *.tmp
-*.temp
 
 # Environment
 .env
@@ -21,42 +16,8 @@ vendor/
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # OS generated files
 .DS_Store
 Thumbs.db
-
-# Build artifacts
-dist/
-build/
-target/
-*.out
-*.exe
-*.dll
-*.so
-*.a
-*.o
-*.obj
-
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-.eggs/
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# Cache directories
-.cache/
-.mypy_cache/
-.pytest_cache/
-.gradle/
 ```
