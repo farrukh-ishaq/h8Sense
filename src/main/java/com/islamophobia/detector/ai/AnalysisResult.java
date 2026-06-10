@@ -53,4 +53,14 @@ public class AnalysisResult {
      * Raw LLM response for debugging/auditing
      */
     private String rawResponse;
+    
+    /**
+     * Model used for analysis
+     */
+    private String modelUsed;
+    
+    /**
+     * Tokens consumed in the analysis
+     */
+    private Integer tokensUsed;
 }

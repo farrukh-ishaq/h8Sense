@@ -173,11 +173,23 @@ public class MainView extends VerticalLayout {
 
     private void submitFeedback(ContentAnalysis analysis, boolean isPositive) {
         try {
-            analysisService.submitFeedback(analysis.getId(), UserFeedback.FeedbackType.valueOf(isPositive ? "HELPFUL" : "MISLEADING"));
+            String ipAddress = "127.0.0.1"; // Local testing
+            String deviceFingerprint = "vaadin-ui";
+            String userAgent = "Vaadin UI";
+            String comment = null;
+            
+            analysisService.submitFeedback(
+                analysis.getId(), 
+                isPositive ? UserFeedback.FeedbackType.LIKE : UserFeedback.FeedbackType.DISLIKE,
+                ipAddress,
+                deviceFingerprint,
+                userAgent,
+                comment
+            );
             Notification.show(isPositive ? "✅ Thank you for your feedback!" : "❌ Feedback recorded", 2000, Notification.Position.MIDDLE);
             loadViolations();
         } catch (Exception e) {
-            Notification.show("⚠️ Error submitting feedback", 2000, Notification.Position.MIDDLE);
+            Notification.show("⚠️ Error submitting feedback: " + e.getMessage(), 2000, Notification.Position.MIDDLE);
         }
     }
 }

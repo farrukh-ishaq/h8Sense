@@ -98,11 +98,11 @@ public class ContentAnalysisController {
         
         // Submit feedback
         FeedbackResponse response = analysisService.submitFeedback(
+            analysisId,
+            feedbackType,
             ipAddress,
             deviceFingerprint,
             userAgent,
-            analysisId,
-            feedbackType,
             request.getComment()
         );
         

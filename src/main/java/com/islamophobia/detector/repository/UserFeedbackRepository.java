@@ -30,5 +30,8 @@ public interface UserFeedbackRepository extends JpaRepository<UserFeedback, UUID
     long countByAnalysisIdAndFeedbackType(@Param("analysisId") UUID analysisId, 
                                           @Param("type") UserFeedback.FeedbackType type);
     
+    @Query("SELECT COUNT(uf) FROM UserFeedback uf WHERE uf.feedbackType = :type")
+    long countByFeedbackType(@Param("type") UserFeedback.FeedbackType type);
+    
     Page<UserFeedback> findByCreatedAtBetween(Instant startDate, Instant endDate, Pageable pageable);
 }
