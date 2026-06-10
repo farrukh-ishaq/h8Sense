@@ -1,5 +1,6 @@
 package com.islamophobia.detector.model.entity;
 
+import com.islamophobia.detector.model.enums.ViolationCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -37,6 +38,19 @@ public class ContentAnalysis {
      */
     @Column(nullable = false)
     private boolean isConfirmedViolation;
+
+    /**
+     * Category of the violation
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private ViolationCategory category;
+
+    /**
+     * Confidence score (0.0 to 1.0)
+     */
+    @Column(nullable = false, columnDefinition = "DECIMAL(4,3) DEFAULT 0.000")
+    private Double violationConfidence;
 
     /**
      * Detailed explanation of why it is/isn't a violation
@@ -111,6 +125,9 @@ public class ContentAnalysis {
         }
         if (hadithReferences == null) {
             hadithReferences = new ArrayList<>();
+        }
+        if (violationConfidence == null) {
+            violationConfidence = 0.0;
         }
     }
 }

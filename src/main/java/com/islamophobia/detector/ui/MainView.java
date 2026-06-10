@@ -30,44 +30,47 @@ import java.util.Map;
 public class MainView extends VerticalLayout {
 
     private final ContentAnalysisService analysisService;
-    
+
     private Grid<ContentAnalysis> violationsGrid;
     private Div detailPanel;
     private ComboBox<String> categoryFilter;
-    
+
     @Override
-    protected void onAttach(AttachEvent event) {
+    protected void onAttach(com.vaadin.flow.component.AttachEvent event) {
         super.onAttach(event);
         setSizeFull();
         setPadding(true);
         setSpacing(true);
-        
+
         add(createHeader());
         add(createFilters());
         add(createViolationsGrid());
         add(createDetailPanel());
-        
+
         loadViolations();
     }
-    
+
     private Div createHeader() {
         H1 title = new H1("🛡️ Islamophobia Content Detector");
         title.getStyle().set("margin-top", "0");
-        
+
         Paragraph subtitle = new Paragraph(
             "AI-powered detection of hate speech against Islam with scholarly responses"
         );
         subtitle.getStyle().set("color", "#666");
+
+        HorizontalLayout headerLayout = new HorizontalLayout(title);
+        headerLayout.setAlignItems(Alignment.BASELINE);
         
-        Div header = new Div(title, subtitle);
-        header.setWidthFull();
-        return header;
+        Div headerDiv = new Div(title, subtitle);
+        headerDiv.setWidthFull();
+        return headerDiv;
     }
-    
+
     private HorizontalLayout createFilters() {
         categoryFilter = new ComboBox<>("Filter by Category");
         categoryFilter.setItems(
-            "All Categories",
+            "ALL",
             "THEOLOGICAL_MISREPRESENTATION",
             "TERRORISM_ASSOCIATION", 
             "CULTURAL_STEREOTYPING",
@@ -75,190 +78,118 @@ public class MainView extends VerticalLayout {
             "HISTORICAL_DISTORTION",
             "OTHER"
         );
-        categoryFilter.setValue("All Categories");
+        categoryFilter.setValue("ALL");
         categoryFilter.addValueChangeListener(e -> loadViolations());
-        
-        Button refreshButton = new Button("🔄 Refresh", e -> loadViolations());
-        
+
+        Button refreshButton = new Button("⟳ Refresh", e -> loadViolations());
+
         HorizontalLayout filterLayout = new HorizontalLayout(categoryFilter, refreshButton);
-        filterLayout.setAlignItems(Alignment.END);
-        filterLayout.setWidthFull();
-        
+        filterLayout.setAlignItems(Alignment.CENTER);
         return filterLayout;
     }
-    
+
     private Div createViolationsGrid() {
         violationsGrid = new Grid<>(ContentAnalysis.class, false);
-        violationsGrid.addColumn(ca -> ca.getContentItem().getTitle())
-            .setHeader("Content Title")
-            .setSortable(true);
-        violationsGrid.addColumn(ca -> ca.getContentItem().getPlatform())
-            .setHeader("Platform")
-            .setSortable(true);
-        violationsGrid.addColumn(ca -> ca.getContentItem().getAuthor())
-            .setHeader("Author");
-        violationsGrid.addColumn(ca -> ca.getViolationExplanation().substring(0, 
-                Math.min(100, ca.getViolationExplanation().length())) + "...")
-            .setHeader("Analysis Summary")
-            .setAutoWidth(true);
-        violationsGrid.addColumn(ca -> ca.getQuranReferences().size() + " Quran, " + 
-                ca.getHadithReferences().size() + " Hadith")
-            .setHeader("References");
-        violationsGrid.addColumn(ca -> ca.getAnalyzedAt().toString().substring(0, 10))
-            .setHeader("Analyzed Date")
-            .setSortable(true);
-        
+        violationsGrid.addColumn(a -> a.getContentItem().getContent())
+            .setHeader("Content")
+            .setFlexGrow(2);
+        violationsGrid.addColumn(a -> a.getContentItem().getSourcePlatform())
+            .setHeader("Platform");
+        violationsGrid.addColumn(a -> String.format("%.1f%%", a.getViolationConfidence() * 100))
+            .setHeader("Confidence");
+        violationsGrid.addColumn(a -> a.getCategory().name())
+            .setHeader("Category");
         violationsGrid.addComponentColumn(this::createFeedbackButtons)
-            .setHeader("Your Feedback");
-        
+            .setHeader("Feedback");
+
         violationsGrid.addItemClickListener(e -> showDetails(e.getItem()));
         violationsGrid.setSizeFull();
         violationsGrid.setHeight("400px");
-        
+
         Div gridContainer = new Div(violationsGrid);
         gridContainer.setSizeFull();
-        gridContainer.getStyle().set("flex-grow", "1");
-        
         return gridContainer;
     }
-    
+
     private HorizontalLayout createFeedbackButtons(ContentAnalysis analysis) {
-        Button likeBtn = new Button("👍 Like", e -> submitFeedback(analysis, UserFeedback.FeedbackType.LIKE));
-        likeBtn.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_SUCCESS,
-                                com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+        Button likeBtn = new Button("👍", e -> submitFeedback(analysis, true));
+        Button dislikeBtn = new Button("👎", e -> submitFeedback(analysis, false));
         
-        Button dislikeBtn = new Button("👎 Dislike", e -> submitFeedback(analysis, UserFeedback.FeedbackType.DISLIKE));
-        dislikeBtn.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_ERROR,
-                                   com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+        likeBtn.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
+        dislikeBtn.addThemeVariants(com.vaadin.flow.component.button.ButtonVariant.LUMO_SMALL);
         
-        HorizontalLayout layout = new HorizontalLayout(likeBtn, dislikeBtn);
-        layout.setPadding(false);
-        layout.setSpacing(true);
-        return layout;
+        return new HorizontalLayout(likeBtn, dislikeBtn);
     }
-    
+
     private Div createDetailPanel() {
         detailPanel = new Div();
-        detailPanel.setSizeFull();
+        detailPanel.setText("Select a violation to view details");
         detailPanel.getStyle()
             .set("border", "1px solid #ddd")
-            .set("border-radius", "8px")
             .set("padding", "16px")
-            .set("background-color", "#f9f9f9")
-            .set("overflow-y", "auto");
-        detailPanel.setVisible(false);
-        
-        Div container = new Div(detailPanel);
-        container.setHeight("300px");
-        container.getStyle().set("flex-shrink", "0");
-        
-        return container;
+            .set("border-radius", "4px")
+            .set("background-color", "#f9f9f9");
+        detailPanel.setWidthFull();
+        return detailPanel;
     }
-    
+
     private void loadViolations() {
-        try {
-            PageRequest pageRequest = PageRequest.of(0, 20, Sort.by("analyzedAt").descending());
-            Page<ContentAnalysis> violationsPage;
-            
-            String selectedCategory = categoryFilter.getValue();
-            if ("All Categories".equals(selectedCategory)) {
-                violationsPage = analysisService.getViolations(pageRequest);
-            } else {
-                // Filter by category in memory (could be optimized with repository query)
-                violationsPage = analysisService.getViolations(pageRequest);
-            }
-            
-            violationsGrid.setItems(violationsPage.getContent());
-            
-            Notification.show("Loaded " + violationsPage.getNumberOfElements() + " violations", 2000, 
-                            Notification.Position.BOTTOM_END);
-        } catch (Exception e) {
-            Notification.show("Error loading violations: " + e.getMessage(), 3000, 
-                            Notification.Position.MIDDLE);
+        PageRequest pageRequest = PageRequest.of(0, 50, Sort.by("analyzedAt").descending());
+        Page<ContentAnalysis> results;
+        
+        String selectedCategory = categoryFilter.getValue();
+        if ("ALL".equals(selectedCategory)) {
+            results = analysisService.getViolations(pageRequest);
+        } else {
+            results = analysisService.getViolationsByCategory(selectedCategory, pageRequest);
         }
+
+        violationsGrid.setItems(results.getContent());
+        
+        Map<String, Long> stats = analysisService.getFeedbackStats();
+        Notification.show(String.format("📊 Stats: %d likes, %d dislikes", 
+            stats.getOrDefault("likes", 0L), 
+            stats.getOrDefault("dislikes", 0L)), 3000, Notification.Position.BOTTOM_END);
     }
-    
+
     private void showDetails(ContentAnalysis analysis) {
-        detailPanel.setVisible(true);
+        Div content = new Div();
+        content.add(new Paragraph("📝 Content: " + analysis.getContentItem().getContent()));
+        content.add(new Paragraph("🏷️ Category: " + analysis.getCategory()));
+        content.add(new Paragraph("✅ Confidence: " + String.format("%.1f%%", analysis.getViolationConfidence() * 100)));
+        content.add(new Paragraph("📖 Explanation: " + analysis.getViolationExplanation()));
+        content.add(new Paragraph("💬 Counter-argument: " + analysis.getCounterArgument()));
+        
+        if (!analysis.getQuranReferences().isEmpty()) {
+            content.add(new Paragraph("📿 Quran References: " + String.join(", ", analysis.getQuranReferences())));
+        }
+        if (!analysis.getHadithReferences().isEmpty()) {
+            content.add(new Paragraph("📚 Hadith References: " + String.join(", ", analysis.getHadithReferences())));
+        }
+
         detailPanel.removeAll();
-        
-        String content = analysis.getContentItem().getContent();
-        String title = analysis.getContentItem().getTitle() != null ? 
-                      analysis.getContentItem().getTitle() : "Untitled";
-        
-        H1 detailTitle = new H1(title);
-        detailTitle.getStyle().set("font-size", "1.5em");
-        
-        Div sourceInfo = new Div(
-            new Paragraph("Platform: " + analysis.getContentItem().getPlatform()),
-            new Paragraph("Author: " + analysis.getContentItem().getAuthor()),
-            new Paragraph("URL: " + analysis.getContentItem().getUrl())
-        );
-        
-        Div explanation = new Div(
-            new Paragraph("📊 Analysis:"),
-            new Paragraph(analysis.getViolationExplanation())
-        );
-        explanation.getStyle().set("margin-top", "16px");
-        
-        Div counterArgument = new Div(
-            new Paragraph("💬 Counter-Argument:"),
-            new Paragraph(analysis.getCounterArgument())
-        );
-        counterArgument.getStyle().set("margin-top", "16px");
-        
-        Div quranRefs = new Div(
-            new Paragraph("📖 Quran References:"),
-            new Paragraph(String.join(", ", analysis.getQuranReferences()))
-        );
-        quranRefs.getStyle().set("margin-top", "16px");
-        
-        Div hadithRefs = new Div(
-            new Paragraph("📚 Hadith References:"),
-            new Paragraph(String.join(", ", analysis.getHadithReferences()))
-        );
-        hadithRefs.getStyle().set("margin-top", "16px");
-        
-        // Feedback stats
-        Map<String, Long> stats = analysisService.getFeedbackStats(analysis.getId());
-        Div feedbackStats = new Div(
-            new Paragraph("📈 Community Feedback:"),
-            new Paragraph("👍 " + stats.get("likes") + " | 👎 " + stats.get("dislikes"))
-        );
-        feedbackStats.getStyle().set("margin-top", "16px");
-        
-        detailPanel.add(detailTitle, sourceInfo, explanation, counterArgument, 
-                       quranRefs, hadithRefs, feedbackStats);
+        detailPanel.add(content);
     }
-    
-    private void submitFeedback(ContentAnalysis analysis, UserFeedback.FeedbackType type) {
+
+    private void submitFeedback(ContentAnalysis analysis, boolean isPositive) {
         try {
-            // In a real app, you'd collect IP, device fingerprint, etc. from the request
-            var response = analysisService.submitFeedback(
-                "127.0.0.1", // Placeholder IP
-                "browser-fingerprint", // Placeholder
-                "Mozilla/5.0", // Placeholder UA
-                analysis.getId(),
-                type,
-                null // No comment for simple like/dislike
-            );
+            String ipAddress = "127.0.0.1"; // Local testing
+            String deviceFingerprint = "vaadin-ui";
+            String userAgent = "Vaadin UI";
+            String comment = null;
             
-            if (response.isSuccess()) {
-                Notification.show(
-                    "Thank you for your feedback! " + 
-                    "(👍 " + response.getTotalLikes() + " | 👎 " + response.getTotalDislikes() + ")",
-                    3000,
-                    Notification.Position.BOTTOM_END
-                );
-                
-                // Refresh the detail panel to show updated stats
-                showDetails(analysis);
-            } else {
-                Notification.show(response.getMessage(), 3000, Notification.Position.MIDDLE);
-            }
+            analysisService.submitFeedback(
+                analysis.getId(), 
+                isPositive ? UserFeedback.FeedbackType.LIKE : UserFeedback.FeedbackType.DISLIKE,
+                ipAddress,
+                deviceFingerprint,
+                userAgent,
+                comment
+            );
+            Notification.show(isPositive ? "✅ Thank you for your feedback!" : "❌ Feedback recorded", 2000, Notification.Position.MIDDLE);
+            loadViolations();
         } catch (Exception e) {
-            Notification.show("Error submitting feedback: " + e.getMessage(), 3000, 
-                            Notification.Position.MIDDLE);
+            Notification.show("⚠️ Error submitting feedback: " + e.getMessage(), 2000, Notification.Position.MIDDLE);
         }
     }
 }
