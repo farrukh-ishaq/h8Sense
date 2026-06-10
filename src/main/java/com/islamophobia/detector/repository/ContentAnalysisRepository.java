@@ -1,6 +1,7 @@
 package com.islamophobia.detector.repository;
 
 import com.islamophobia.detector.model.entity.ContentAnalysis;
+import com.islamophobia.detector.model.enums.ViolationCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,13 +15,17 @@ import java.util.UUID;
 
 @Repository
 public interface ContentAnalysisRepository extends JpaRepository<ContentAnalysis, UUID> {
-    
+
     Optional<ContentAnalysis> findByContentItemId(UUID contentItemId);
-    
+
     Page<ContentAnalysis> findByIsConfirmedViolation(boolean isViolation, Pageable pageable);
-    
+
+    Page<ContentAnalysis> findByIsConfirmedViolationTrue(Pageable pageable);
+
+    Page<ContentAnalysis> findByIsConfirmedViolationTrueAndCategory(ViolationCategory category, Pageable pageable);
+
     @Query("SELECT ca FROM ContentAnalysis ca JOIN FETCH ca.contentItem WHERE ca.isConfirmedViolation = true")
     Page<ContentAnalysis> findViolationsWithContent(Pageable pageable);
-    
+
     List<ContentAnalysis> findByModelUsed(String modelUsed);
 }

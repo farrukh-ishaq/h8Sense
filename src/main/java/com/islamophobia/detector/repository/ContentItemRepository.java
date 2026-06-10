@@ -16,20 +16,18 @@ import java.util.UUID;
 
 @Repository
 public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> {
-    
-    Optional<ContentItem> findBySourceTypeAndSourceId(ContentItem.SourceType sourceType, String sourceId);
-    
-    Page<ContentItem> findByIsViolation(boolean isViolation, Pageable pageable);
-    
-    Page<ContentItem> findByViolationCategory(ViolationCategory category, Pageable pageable);
-    
-    @Query("SELECT c FROM ContentItem c WHERE c.collectedAt BETWEEN :startDate AND :endDate")
-    Page<ContentItem> findByDateRange(@Param("startDate") Instant startDate, 
-                                      @Param("endDate") Instant endDate, 
+
+    Page<ContentItem> findByAnalysisIsConfirmedViolation(boolean isViolation, Pageable pageable);
+
+    Page<ContentItem> findByPredictedCategory(ViolationCategory category, Pageable pageable);
+
+    @Query("SELECT c FROM ContentItem c WHERE c.createdAt BETWEEN :startDate AND :endDate")
+    Page<ContentItem> findByDateRange(@Param("startDate") Instant startDate,
+                                      @Param("endDate") Instant endDate,
                                       Pageable pageable);
-    
-    @Query("SELECT c FROM ContentItem c WHERE c.platform = :platform ORDER BY c.publishedAt DESC")
+
+    @Query("SELECT c FROM ContentItem c WHERE c.sourcePlatform = :platform ORDER BY c.createdAt DESC")
     Page<ContentItem> findByPlatform(@Param("platform") String platform, Pageable pageable);
-    
-    List<ContentItem> findByIsViolationAndCollectedAtBefore(boolean isViolation, Instant cutoffDate);
+
+    List<ContentItem> findByAnalysisIsConfirmedViolationAndCreatedAtBefore(boolean isViolation, Instant cutoffDate);
 }
