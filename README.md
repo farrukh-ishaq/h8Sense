@@ -19,8 +19,9 @@ docker run -d --name postgres-h8sense \
   -p 5432:5432 \
   postgres:15-alpine
 
-# 3. Set your OpenAI API key
+# 3. Set your OpenAI API key (or use Ollama for local LLM)
 export OPENAI_API_KEY=your-openai-api-key-here
+# OR for local LLM: export USE_OLLAMA=true
 
 # 4. Build and run
 mvn clean package -DskipTests
@@ -28,6 +29,195 @@ java -jar target/islamophobia-detector-1.0.0-SNAPSHOT.jar
 ```
 
 Access the application at **http://localhost:8080**
+
+## 📖 Example Usage
+
+### Testing the AI Analysis API
+
+Once the application is running, you can test content analysis via curl:
+
+```bash
+# Analyze a sample hate speech content
+curl -X POST http://localhost:8080/api/v1/content/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "All Muslims support terrorism and want to destroy our way of life.",
+    "sourceType": "SOCIAL_MEDIA",
+    "platform": "Twitter",
+    "author": "Anonymous User",
+    "url": "https://twitter.com/example/status/123"
+  }'
+```
+
+**Example Response:**
+```json
+{
+  "id": "uuid-here",
+  "contentItem": {
+    "id": "uuid-here",
+    "content": "All Muslims support terrorism...",
+    "sourcePlatform": "Twitter",
+    "author": "Anonymous User"
+  },
+  "isConfirmedViolation": true,
+  "category": "TERRORISM_ASSOCIATION",
+  "violationConfidence": 0.95,
+  "violationExplanation": "This statement makes a sweeping generalization linking all Muslims to terrorism...",
+  "counterArgument": "Islam explicitly condemns terrorism. The Quran states: 'Whoever kills a soul unless for a soul or for corruption [done] in the land - it is as if he had slain mankind entirely.' (Quran 5:32)",
+  "quranReferences": ["5:32", "2:190"],
+  "hadithReferences": ["Sahih Bukhari 9:83:17"],
+  "analyzedAt": "2024-06-10T12:00:00Z"
+}
+```
+
+### Viewing Confirmed Violations
+
+```bash
+# Get paginated list of confirmed violations
+curl http://localhost:8080/api/v1/violations?page=0&size=10
+```
+
+### Submitting Feedback
+
+```bash
+# Like an analysis
+curl -X POST http://localhost:8080/api/v1/analysis/{analysisId}/feedback \
+  -H "Content-Type: application/json" \
+  -d '{
+    "feedbackType": "LIKE",
+    "comment": "Very accurate analysis with proper references"
+  }'
+```
+
+### Interactive Dashboard
+
+Open **http://localhost:8080** in your browser to access the Vaadin UI dashboard featuring:
+- Grid view of all confirmed violations
+- Category filters (Theological Misrepresentation, Terrorism Association, etc.)
+- Detailed analysis panels with Quran/Hadith references
+- Like/Dislike buttons for community feedback
+- Real-time feedback statistics
+
+## 🔧 Configuration Options
+
+### Using OpenAI (Cloud)
+
+Create `application.properties` in the root directory:
+
+```properties
+# Database
+spring.datasource.url=jdbc:postgresql://localhost:5432/islamophobia_detector
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+
+# OpenAI Configuration
+spring.ai.openai.api-key=your-openai-api-key-here
+spring.ai.openai.chat.options.model=gpt-4-turbo
+```
+
+### Using Ollama (Local LLM)
+
+For local development without API costs:
+
+```bash
+# Install Ollama and pull a model
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3
+```
+
+Then configure:
+
+```properties
+# Use Ollama instead of OpenAI
+spring.ai.ollama.base-url=http://localhost:11434
+spring.ai.ollama.chat.options.model=llama3
+```
+
+### Docker Compose (Full Stack)
+
+For complete setup with monitoring:
+
+```bash
+cd docker
+docker-compose up -d
+```
+
+This starts:
+- Application (port 8080)
+- PostgreSQL (port 5432)
+- Prometheus (port 9090)
+- Grafana (port 3000)
+- Jaeger (port 16686)
+
+## 🏗️ Architecture Overview
+
+### Content Analysis Flow
+
+1. **Content Collection**: Observers fetch content from social media, news sites, forums
+2. **AI Analysis**: Spring AI sends content to LLM with Islamic context prompt
+3. **Result Processing**: LLM returns JSON with violation status, category, confidence, and references
+4. **Storage**: Results saved to PostgreSQL with full metadata
+5. **Display**: Vaadin UI shows confirmed violations in real-time
+6. **Feedback**: Users can like/dislike, with anti-spam rate limiting
+
+### Auto-Scanning Setup (Future Enhancement)
+
+To enable automated scanning, implement observers in the `observer` package:
+
+```java
+// Example: Twitter observer
+@Component
+public class TwitterObserver implements ContentObserver {
+    @Scheduled(fixedRate = 300000) // Every 5 minutes
+    public void scanTwitter() {
+        // Fetch tweets with specific keywords
+        // Call /api/v1/content/analyze for each
+    }
+}
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Vaadin UI not loading (403 Forbidden):**
+- Clear browser cache
+- Check that `/VAADIN/**` is permitted in SecurityConfig
+- Rebuild with `mvn clean package -DskipTests`
+
+**AI Analysis failing:**
+- Verify OPENAI_API_KEY is set correctly
+- Check network connectivity to OpenAI API
+- For Ollama, ensure service is running: `ollama list`
+
+**Database connection errors:**
+- Ensure PostgreSQL is running: `docker ps | grep postgres`
+- Check credentials in application.properties
+- Verify database exists: `docker exec -it postgres-h8sense psql -U postgres -l`
+
+**High memory usage:**
+- Reduce LLM context size in configuration
+- Limit concurrent requests
+- Increase Docker container memory limits
+
+## 📊 Monitoring
+
+- **Prometheus**: http://localhost:9090 (metrics)
+- **Grafana**: http://localhost:3000 (dashboards, admin/admin)
+- **Jaeger**: http://localhost:16686 (distributed tracing)
+- **Actuator**: http://localhost:8080/actuator/health
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
 
 ## Features
 
