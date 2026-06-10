@@ -1,5 +1,6 @@
 package com.islamophobia.detector.model.entity;
 
+import com.islamophobia.detector.model.enums.ViolationCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;

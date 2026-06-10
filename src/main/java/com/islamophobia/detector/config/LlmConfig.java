@@ -2,7 +2,10 @@ package com.islamophobia.detector.config;
 
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.ai.ollama.api.OllamaOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -40,22 +43,21 @@ public class LlmConfig {
     public ChatModel chatModel() {
         if ("ollama".equalsIgnoreCase(llmProvider)) {
             log.info("Configuring Ollama ChatModel with model: {}", ollamaModel);
+            OllamaApi ollamaApi = new OllamaApi(ollamaBaseUrl);
             return OllamaChatModel.builder()
-                .baseUrl(ollamaBaseUrl)
-                .defaultOptions(org.springframework.ai.ollama.api.OllamaOptions.builder()
+                .ollamaApi(ollamaApi)
+                .defaultOptions(OllamaOptions.builder()
                     .model(ollamaModel)
                     .temperature(0.3)
                     .build())
                 .build();
         } else {
             log.info("Configuring OpenAI ChatModel with model: {}", openAiModel);
-            return OpenAiChatModel.builder()
-                .openAiApi(new OpenAiApi(openAiApiKey, RestClient.builder()))
-                .defaultOptions(org.springframework.ai.openai.api.OpenAiApi.ChatCompletionRequestOptions.builder()
-                    .model(openAiModel)
-                    .temperature(0.3)
-                    .build())
-                .build();
+            OpenAiApi openAiApi = new OpenAiApi(openAiApiKey);
+            return new OpenAiChatModel(openAiApi, OpenAiChatOptions.builder()
+                .model(openAiModel)
+                .temperature(0.3)
+                .build());
         }
     }
 
