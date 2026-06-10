@@ -30,7 +30,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
-                .requestMatchers("/", "/index.html", "/static/**", "/vaadin/**").permitAll()
+                .requestMatchers("/", "/index.html", "/static/**", "/VAADIN/**", "/vaadin/**").permitAll()
                 .anyRequest().authenticated()
             );
         
