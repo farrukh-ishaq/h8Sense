@@ -89,7 +89,7 @@ public class ContentItem {
     /**
      * Confidence score of violation detection (0.0 to 1.0)
      */
-    @Column(precision = 5, scale = 4)
+    @Column
     private Double violationConfidence;
     
     /**
