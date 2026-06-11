@@ -1,13 +1,16 @@
-```
-# Dependencies
+# Maven build artifacts
 target/
 .m2/
 .gradle/
 
+# Compiled Java classes
+*.class
+
 # Logs
 *.log
+*.tmp
 
-# Environment
+# Environment files
 .env
 .env.local
 *.env.*
@@ -18,7 +21,7 @@ target/
 *.swp
 *.swo
 
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
 
@@ -76,4 +79,3 @@ build/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```

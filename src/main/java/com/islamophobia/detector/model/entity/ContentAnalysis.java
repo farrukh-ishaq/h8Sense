@@ -49,7 +49,7 @@ public class ContentAnalysis {
     /**
      * Confidence score (0.0 to 1.0)
      */
-    @Column(nullable = false, columnDefinition = "DECIMAL(4,3) DEFAULT 0.000")
+    @Column(nullable = false, precision = 4, scale = 3)
     private Double violationConfidence;
 
     /**

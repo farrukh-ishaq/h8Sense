@@ -9,8 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-
 /**
  * Configuration for HTTP clients and REST templates
  */
