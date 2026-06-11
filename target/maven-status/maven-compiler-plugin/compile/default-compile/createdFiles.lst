@@ -25,4 +25,5 @@ com/islamophobia/detector/model/entity/FeedbackTracking.class
 com/islamophobia/detector/model/dto/ContentAnalysisRequest.class
 com/islamophobia/detector/model/dto/ContentAnalysisDTO$ContentAnalysisDTOBuilder.class
 com/islamophobia/detector/model/dto/FeedbackResponse$FeedbackResponseBuilder.class
+com/islamophobia/detector/init/DataInitializer.class
 com/islamophobia/detector/ai/AnalysisResult.class
