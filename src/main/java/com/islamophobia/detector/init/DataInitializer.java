@@ -45,6 +45,7 @@ public class DataInitializer implements CommandLineRunner {
             SourceType.SOCIAL_MEDIA,
             "Twitter"
         );
+        itemRepository.save(item1); // Save item first
         ContentAnalysis analysis1 = createAnalysis(
             item1,
             true,
@@ -63,6 +64,7 @@ public class DataInitializer implements CommandLineRunner {
             SourceType.SOCIAL_MEDIA,
             "Facebook"
         );
+        itemRepository.save(item2); // Save item first
         ContentAnalysis analysis2 = createAnalysis(
             item2,
             true,
@@ -81,6 +83,7 @@ public class DataInitializer implements CommandLineRunner {
             SourceType.SOCIAL_MEDIA,
             "YouTube"
         );
+        itemRepository.save(item3); // Save item first
         ContentAnalysis analysis3 = createAnalysis(
             item3,
             true,
@@ -99,6 +102,7 @@ public class DataInitializer implements CommandLineRunner {
             SourceType.NEWS_ARTICLE,
             "Independent Blog"
         );
+        itemRepository.save(item4); // Save item first
         ContentAnalysis analysis4 = createAnalysis(
             item4,
             true,
@@ -117,6 +121,7 @@ public class DataInitializer implements CommandLineRunner {
             SourceType.FORUM,
             "History Forum"
         );
+        itemRepository.save(item5); // Save item first
         ContentAnalysis analysis5 = createAnalysis(
             item5,
             true,
@@ -126,7 +131,7 @@ public class DataInitializer implements CommandLineRunner {
             "Islamic scholars preserved AND advanced Greek knowledge while making original contributions: Algebra (Al-Khwarizmi), optics (Ibn al-Haytham), medicine (Ibn Sina/Avicenna), astronomy, chemistry, and philosophy. These works were translated to Latin and fueled the European Renaissance. The House of Wisdom in Baghdad was a beacon of learning when much of Europe was in the Dark Ages."
         );
 
-        // Save all analyses (which also saves associated content items)
+        // Save all analyses (items already saved)
         analysisRepository.saveAll(List.of(analysis1, analysis2, analysis3, analysis4, analysis5));
     }
 

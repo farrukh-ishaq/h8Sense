@@ -4,98 +4,47 @@
 __pycache__/
 *.o
 *.obj
-*.class
-*.jar
-*.war
-*.ear
-*.so
-*.dll
-*.exe
-*.out
-*.a
+dist/
+build/
+target/
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-.env
-.env.local
-.env.*
-
-# Java/Maven specific
-target/
-*.class
-*.jar
-*.war
-*.ear
-*.jsp
-!target/classes/application.yml
-target/
-
-# Build and distribution
-dist/
-build/
-*.tar
-*.tar.gz
-*.zip
-*.gz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
+.julia/
+zig*/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
-*.swo
-*.bak
-*.~
-*~
 
-# Editors and IDEs
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
 .vscode/
 .idea/
-*.iml
-*.ipr
-*.iws
-*.swp
-*.swo
 
-# OS generated files
+# OS specific
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Testing and coverage
+# Coverage
 coverage/
 htmlcov/
 .coverage
-*.coverage
-.pytest_cache/
-.mypy_cache/
-.nyc_output/
-coverage-final.json
 
-# Environment variables and secrets
-.env
-.env.local
-.env.*
-!.env.example
+# Python specific
+.mypy_cache/
+.pytest_cache/
+
+# Java/Gradle
+.gradle/
+*.class
 
 # Frontend generated files
 frontend/generated/
