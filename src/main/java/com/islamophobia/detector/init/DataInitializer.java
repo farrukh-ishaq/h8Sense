@@ -6,6 +6,7 @@ import com.islamophobia.detector.model.enums.ViolationCategory;
 import com.islamophobia.detector.model.enums.SourceType;
 import com.islamophobia.detector.repository.ContentAnalysisRepository;
 import com.islamophobia.detector.repository.ContentItemRepository;
+import com.islamophobia.detector.service.ContentFetcherService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
