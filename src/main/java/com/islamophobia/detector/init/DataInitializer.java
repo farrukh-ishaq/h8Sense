@@ -6,10 +6,10 @@ import com.islamophobia.detector.model.enums.ViolationCategory;
 import com.islamophobia.detector.model.enums.SourceType;
 import com.islamophobia.detector.repository.ContentAnalysisRepository;
 import com.islamophobia.detector.repository.ContentItemRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -18,7 +18,10 @@ public class DataInitializer implements CommandLineRunner {
     private final ContentAnalysisRepository analysisRepository;
     private final ContentItemRepository itemRepository;
 
-    public DataInitializer(ContentAnalysisRepository analysisRepository, 
+    @Value("${app.sample-data.enabled:true}")
+    private boolean sampleDataEnabled;
+
+    public DataInitializer(ContentAnalysisRepository analysisRepository,
                           ContentItemRepository itemRepository) {
         this.analysisRepository = analysisRepository;
         this.itemRepository = itemRepository;
@@ -27,9 +30,13 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (analysisRepository.count() == 0 && itemRepository.count() == 0) {
-            System.out.println("🌟 Initializing sample data for Islamophobia Detector...");
-            loadSampleData();
-            System.out.println("✅ Sample data loaded successfully!");
+            if (sampleDataEnabled) {
+                System.out.println("🌟 Initializing sample data for Islamophobia Detector...");
+                loadSampleData();
+                System.out.println("✅ Sample data loaded successfully!");
+            } else {
+                System.out.println("ℹ️  Sample data seeding is disabled (APP_SAMPLE_DATA_ENABLED=false).");
+            }
         } else {
             System.out.println("ℹ️  Database already contains application data. Skipping sample initialization.");
         }
@@ -46,14 +53,11 @@ public class DataInitializer implements CommandLineRunner {
             "All Muslims support terrorism and want to destroy our way of life.",
             "Twitter Simulation",
             "Anonymous User",
-            "https://twitter.com/example/status/123",
             SourceType.SOCIAL_MEDIA,
             "Twitter"
         );
         ContentItem savedItem1 = itemRepository.save(item1); // Save item first
         ContentAnalysis analysis1 = createAnalysis(
-            savedItem1,
-            true,
             ViolationCategory.STEREOTYPING,
             0.95,
             "This statement promotes harmful generalization and false association between Islam and terrorism.",
@@ -66,14 +70,11 @@ public class DataInitializer implements CommandLineRunner {
             "Islam forces women to wear burqas and treats them as second-class citizens.",
             "Facebook Post",
             "John Doe",
-            "https://facebook.com/posts/456",
             SourceType.SOCIAL_MEDIA,
             "Facebook"
         );
         ContentItem savedItem2 = itemRepository.save(item2); // Save item first
         ContentAnalysis analysis2 = createAnalysis(
-            savedItem2,
-            true,
             ViolationCategory.MISREPRESENTATION,
             0.88,
             "This misrepresents Islamic teachings on women's rights and clothing choices.",
@@ -86,14 +87,11 @@ public class DataInitializer implements CommandLineRunner {
             "Muslims are invading our country and replacing our culture. They're like animals.",
             "YouTube Comment",
             "User12345",
-            "https://youtube.com/watch?v=abc#comment789",
             SourceType.SOCIAL_MEDIA,
             "YouTube"
         );
         ContentItem savedItem3 = itemRepository.save(item3); // Save item first
         ContentAnalysis analysis3 = createAnalysis(
-            savedItem3,
-            true,
             ViolationCategory.DEHUMANIZATION,
             0.92,
             "Uses dehumanizing language ('animals') and promotes replacement theory conspiracy.",
@@ -106,14 +104,11 @@ public class DataInitializer implements CommandLineRunner {
             "Muslims are secretly implementing Sharia law to take over Western governments.",
             "Blog Article",
             "Conspiracy Watch",
-            "https://example-blog.com/sharia-conspiracy",
             SourceType.NEWS_ARTICLE,
             "Independent Blog"
         );
         ContentItem savedItem4 = itemRepository.save(item4); // Save item first
         ContentAnalysis analysis4 = createAnalysis(
-            savedItem4,
-            true,
             ViolationCategory.CONSPIRACY_THEORY,
             0.87,
             "Promotes unfounded conspiracy theory about Sharia law implementation.",
@@ -126,14 +121,11 @@ public class DataInitializer implements CommandLineRunner {
             "Islamic civilization contributed nothing to science. All their achievements were stolen from Greeks.",
             "Forum Post",
             "HistoryBuff2024",
-            "https://historyforum.net/thread/islamic-science",
             SourceType.FORUM,
             "History Forum"
         );
         ContentItem savedItem5 = itemRepository.save(item5); // Save item first
         ContentAnalysis analysis5 = createAnalysis(
-            savedItem5,
-            true,
             ViolationCategory.HISTORICAL_REVISIONISM,
             0.90,
             "Erases significant contributions of Islamic Golden Age to science and civilization.",
@@ -145,13 +137,13 @@ public class DataInitializer implements CommandLineRunner {
         analysisRepository.saveAll(List.of(analysis1, analysis2, analysis3, analysis4, analysis5));
     }
 
-    private ContentItem createContentItem(String content, String source, String author, 
-                                         String url, SourceType sourceType, String platform) {
+    private ContentItem createContentItem(String content, String source, String author,
+                                         SourceType sourceType, String platform) {
         ContentItem item = new ContentItem();
         item.setContent(content);
         item.setTitle(source);
-        item.setSource(url);
-        item.setSourceUrl(url);
+        item.setSource(source);
+        item.setSourceUrl(null);
         item.setAuthor(author);
         item.setSourceType(sourceType);
         item.setSourcePlatform(platform);
@@ -159,12 +151,10 @@ public class DataInitializer implements CommandLineRunner {
         return item;
     }
 
-    private ContentAnalysis createAnalysis(ContentItem item, boolean isViolation,
-                                          ViolationCategory category, double confidence,
+    private ContentAnalysis createAnalysis(ViolationCategory category, double confidence,
                                           String explanation, String scholarlyRefutation) {
         ContentAnalysis analysis = new ContentAnalysis();
-        // Don't set contentItem here - it will be set after saving
-        analysis.setConfirmedViolation(isViolation);
+        analysis.setConfirmedViolation(true);
         analysis.setCategory(category);
         analysis.setViolationConfidence(java.math.BigDecimal.valueOf(confidence));
         analysis.setViolationExplanation(explanation);

@@ -11,7 +11,6 @@ import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Service to fetch content from RSS feeds, social media, and news sources
@@ -48,20 +46,16 @@ public class ContentFetcherService {
     private final Set<String> processedUrls = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean fetchInProgress = new AtomicBoolean(false);
 
-    // Default RSS feeds for Islam-related news and discussions
-    // Removed Twitter blog feed as it's protected by Cloudflare and not relevant for hate speech detection
+    // Default RSS feeds verified to return XML/RSS content as of 2026-06-11.
+    // Prefer stable feeds here because several legacy endpoints now return HTML, 404s, or timeout pages.
     private static final List<String> DEFAULT_RSS_FEEDS = List.of(
         // Major news outlets with comprehensive world coverage
         "https://www.aljazeera.com/xml/rss/all.xml",
         "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
         "https://www.theguardian.com/world/rss",
-        "https://www.washingtonpost.com/rss/world",
-        "https://www.cnn.com/services/rss/",
         // Islamic news and community sources
-        "https://www.islamicity.org/feed/",
-        "https://muslimmatters.org/feed/",
-        "https://www.state.gov/feed/"
+        "https://muslimmatters.org/feed/"
     );
 
     // Keywords to identify potentially relevant content
@@ -89,7 +83,7 @@ public class ContentFetcherService {
             return;
         }
 
-        log.info("Starting RSS feed content fetching...");
+        log.info("Starting RSS feed content fetching with timeout {}s...", fetchTimeoutSeconds);
 
         try {
             List<String> feedsToProcess = getActiveRssFeeds();
@@ -158,16 +152,17 @@ public class ContentFetcherService {
      * Process a single RSS item
      */
     private void processRssItem(Element item, String feedUrl) {
-        String title = item.selectFirst("title") != null ?
-            item.selectFirst("title").text() : "";
-        String description = item.selectFirst("description") != null ?
-            item.selectFirst("description").text() : "";
-        String link = item.selectFirst("link") != null ?
-            item.selectFirst("link").text() : "";
-        String pubDate = item.selectFirst("pubDate") != null ?
-            item.selectFirst("pubDate").text() : LocalDateTime.now().toString();
-        String author = item.selectFirst("author") != null ?
-            item.selectFirst("author").text() : "RSS Feed";
+        Element titleElement = item.selectFirst("title");
+        Element descriptionElement = item.selectFirst("description");
+        Element linkElement = item.selectFirst("link");
+        Element pubDateElement = item.selectFirst("pubDate");
+        Element authorElement = item.selectFirst("author");
+
+        String title = titleElement != null ? titleElement.text() : "";
+        String description = descriptionElement != null ? descriptionElement.text() : "";
+        String link = linkElement != null ? linkElement.text() : "";
+        String pubDate = pubDateElement != null ? pubDateElement.text() : LocalDateTime.now().toString();
+        String author = authorElement != null ? authorElement.text() : "RSS Feed";
         String platform = extractPlatformFromUrl(feedUrl);
         String normalizedLink = normalizeSourceUrl(link);
         String cacheKey = !normalizedLink.isBlank() ? normalizedLink : (feedUrl + "::" + title).trim();

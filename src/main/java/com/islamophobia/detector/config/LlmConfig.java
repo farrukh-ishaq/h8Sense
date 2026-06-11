@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.web.client.RestClient;
 
 /**
  * Configuration for LLM providers (OpenAI and Ollama)
@@ -29,7 +28,7 @@ public class LlmConfig {
     @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;
 
-    @Value("${spring.ai.ollama.chat.options.model:llama3.1:8b-instruct-q4_0}")
+    @Value("${spring.ai.ollama.chat.options.model:llama3.1}")
     private String ollamaModel;
 
     @Value("${llm.provider:none}")

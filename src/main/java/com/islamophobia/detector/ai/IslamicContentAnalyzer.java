@@ -56,11 +56,17 @@ public class IslamicContentAnalyzer {
 
         String userPrompt = buildUserPrompt(content, context);
 
-        String response = chatClient.prompt()
-            .system(SYSTEM_PROMPT)
-            .user(userPrompt)
-            .call()
-            .content();
+        String response;
+        try {
+            response = chatClient.prompt()
+                .system(SYSTEM_PROMPT)
+                .user(userPrompt)
+                .call()
+                .content();
+        } catch (Exception ex) {
+            log.warn("LLM call failed. Falling back to safe default analysis. Error: {}", ex.getMessage());
+            return buildFallbackResult(ex);
+        }
 
         log.debug("LLM response received");
 
@@ -149,6 +155,42 @@ public class IslamicContentAnalyzer {
             trimmed = trimmed.replaceFirst("\\s*```$", "");
         }
         return trimmed;
+    }
+
+    private AnalysisResult buildFallbackResult(Exception ex) {
+        String errorMessage = ex == null || ex.getMessage() == null
+            ? "Unknown AI provider error"
+            : ex.getMessage().trim();
+
+        String explanation = "AI analysis is currently unavailable, so the item was stored with a safe default result. " +
+            buildOperatorHint(errorMessage);
+
+        return AnalysisResult.builder()
+            .isViolation(false)
+            .confidence(BigDecimal.ZERO)
+            .category("OTHER")
+            .explanation(explanation)
+            .counterArgument("")
+            .quranReferences(List.of())
+            .hadithReferences(List.of())
+            .rawResponse(errorMessage)
+            .modelUsed(chatModel.toString())
+            .tokensUsed(null)
+            .build();
+    }
+
+    private String buildOperatorHint(String errorMessage) {
+        String normalizedError = errorMessage == null ? "" : errorMessage.toLowerCase();
+
+        if (normalizedError.contains("model") && normalizedError.contains("not found")) {
+            return "The configured Ollama model was not found. Pull the model with `ollama pull <model>` or update `OLLAMA_MODEL` to a model that exists in your Ollama instance.";
+        }
+
+        if (normalizedError.contains("connection refused") || normalizedError.contains("failed to connect") || normalizedError.contains("connect timed out")) {
+            return "The configured AI provider could not be reached. Verify `OLLAMA_HOST`/network connectivity or switch to `LLM_PROVIDER=none` while onboarding.";
+        }
+
+        return "Check the application logs and validate the configured LLM provider, host, and model.";
     }
 
     private BigDecimal parseConfidence(Object value) {

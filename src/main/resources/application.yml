@@ -32,7 +32,7 @@ spring:
       base-url: ${OLLAMA_HOST:http://localhost:11434}
       chat:
         options:
-          model: ${OLLAMA_MODEL:llama3.1:8b-instruct-q4_0}
+          model: ${OLLAMA_MODEL:llama3.1}
           temperature: ${OLLAMA_TEMPERATURE:0.3}
 
 # LLM Provider Selection (openai, ollama, or none)
@@ -99,6 +99,8 @@ logging:
 
 # Application-specific settings
 app:
+  sample-data:
+    enabled: ${APP_SAMPLE_DATA_ENABLED:true}
   feedback:
     max-per-ip: 5
     block-duration-minutes: 60
