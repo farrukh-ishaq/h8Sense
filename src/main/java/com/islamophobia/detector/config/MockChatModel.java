@@ -27,7 +27,7 @@ public class MockChatModel implements ChatModel {
             {
                 "isViolation": false,
                 "confidence": 0.5,
-                "category": "NONE",
+                "category": "OTHER",
                 "explanation": "Mock analysis - AI not configured. Set OPENAI_API_KEY or use Ollama for real analysis.",
                 "counterArgument": "No counter-argument generated - mock mode active.",
                 "quranReferences": [],
@@ -44,5 +44,10 @@ public class MockChatModel implements ChatModel {
     public Flux<ChatResponse> stream(Prompt prompt) {
         log.warn("Streaming not fully supported in MockChatModel, using call() instead");
         return Flux.just(call(prompt));
+    }
+    
+    @Override
+    public String toString() {
+        return "MockChatModel";
     }
 }

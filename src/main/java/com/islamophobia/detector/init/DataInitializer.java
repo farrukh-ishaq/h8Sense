@@ -17,11 +17,14 @@ public class DataInitializer implements CommandLineRunner {
 
     private final ContentAnalysisRepository analysisRepository;
     private final ContentItemRepository itemRepository;
+    private final ContentFetcherService contentFetcherService;
 
     public DataInitializer(ContentAnalysisRepository analysisRepository, 
-                          ContentItemRepository itemRepository) {
+                          ContentItemRepository itemRepository,
+                          ContentFetcherService contentFetcherService) {
         this.analysisRepository = analysisRepository;
         this.itemRepository = itemRepository;
+        this.contentFetcherService = contentFetcherService;
     }
 
     @Override
@@ -32,6 +35,16 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("✅ Sample data loaded successfully!");
         } else {
             System.out.println("ℹ️  Database already contains data. Skipping initialization.");
+        }
+        
+        // Trigger RSS feed fetch on startup to get real content immediately
+        System.out.println("📡 Triggering initial RSS feed fetch...");
+        try {
+            contentFetcherService.fetchAllFeeds();
+            System.out.println("✅ Initial RSS feed fetch completed!");
+        } catch (Exception e) {
+            System.err.println("⚠️  Initial RSS feed fetch failed: " + e.getMessage());
+            System.err.println("   Scheduled fetching will continue in the background.");
         }
     }
 

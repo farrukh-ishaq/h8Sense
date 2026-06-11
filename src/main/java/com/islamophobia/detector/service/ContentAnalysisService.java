@@ -175,8 +175,13 @@ public class ContentAnalysisService {
      */
     @Transactional(readOnly = true)
     public Page<ContentAnalysis> getViolationsByCategory(String category, Pageable pageable) {
-        ViolationCategory cat = ViolationCategory.valueOf(category);
-        return analysisRepository.findByIsConfirmedViolationTrueAndCategory(cat, pageable);
+        try {
+            ViolationCategory cat = ViolationCategory.valueOf(category.toUpperCase());
+            return analysisRepository.findByIsConfirmedViolationTrueAndCategory(cat, pageable);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid violation category requested: {}. Returning empty page.", category);
+            return Page.empty(pageable);
+        }
     }
 
     /**
