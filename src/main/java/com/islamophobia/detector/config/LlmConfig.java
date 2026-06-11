@@ -32,7 +32,7 @@ public class LlmConfig {
     @Value("${spring.ai.ollama.chat.options.model:llama3.1:8b-instruct-q4_0}")
     private String ollamaModel;
 
-    @Value("${llm.provider:openai}")
+    @Value("${llm.provider:none}")
     private String llmProvider;
 
     /**

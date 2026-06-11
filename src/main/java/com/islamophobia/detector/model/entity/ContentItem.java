@@ -13,7 +13,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "content_item", indexes = {
-    @Index(name = "idx_content_source", columnList = "sourcePlatform"),
+    @Index(name = "idx_content_source_platform", columnList = "sourcePlatform"),
     @Index(name = "idx_content_timestamp", columnList = "createdAt"),
     @Index(name = "idx_content_type", columnList = "sourceType")
 })
