@@ -140,7 +140,7 @@ public class DataInitializer implements CommandLineRunner {
         item.setSourceType(sourceType);
         item.setSourcePlatform(platform);
         item.setDetectedAt(java.time.Instant.now());
-        return item; // Return without saving, will be saved with analysis
+        return contentItemRepository.save(item);
     }
 
     private ContentAnalysis createAnalysis(ContentItem item, boolean isViolation,
