@@ -243,6 +243,14 @@ public class ContentFetcherService {
     }
 
     /**
+     * Manually trigger content fetch from all sources (public method for DataInitializer)
+     */
+    public void fetchAllFeeds() {
+        log.info("Manual fetch of all feeds triggered");
+        fetchFromRssFeeds();
+    }
+
+    /**
      * Manually trigger content fetch from all sources
      */
     public void triggerManualFetch() {
