@@ -1,6 +1,23 @@
 version: '3.8'
 
 services:
+  # Ollama for Local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: islamophobia-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - app-network
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -30,6 +47,8 @@ services:
     container_name: islamophobia-app
     depends_on:
       postgres:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     env_file:
       - ../.env
@@ -97,6 +116,7 @@ volumes:
   app_logs:
   prometheus_data:
   grafana_data:
+  ollama_data:
 
 networks:
   app-network:
