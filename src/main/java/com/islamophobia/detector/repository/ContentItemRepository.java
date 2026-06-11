@@ -17,7 +17,13 @@ import java.util.UUID;
 @Repository
 public interface ContentItemRepository extends JpaRepository<ContentItem, UUID> {
 
+    boolean existsBySourceUrl(String sourceUrl);
+
+    long countByAnalysisIsNull();
+
     Page<ContentItem> findByAnalysisIsConfirmedViolation(boolean isViolation, Pageable pageable);
+
+    Page<ContentItem> findByAnalysisIsNull(Pageable pageable);
 
     Page<ContentItem> findByPredictedCategory(ViolationCategory category, Pageable pageable);
 

@@ -19,24 +19,28 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
-                .requestMatchers("/", "/index.html", "/static/**", "/VAADIN/**", "/vaadin/**").permitAll()
+                .requestMatchers(
+                    "/", "/index.html", "/static/**", "/VAADIN/**", "/vaadin/**",
+                    "/frontend/**", "/webjars/**", "/images/**", "/icons/**",
+                    "/manifest.webmanifest", "/sw.js", "/offline.html"
+                ).permitAll()
                 .anyRequest().authenticated()
             );
-        
+
         return http.build();
     }
-    
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -56,7 +60,7 @@ public class SecurityConfig {
             "Access-Control-Allow-Credentials"
         ));
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

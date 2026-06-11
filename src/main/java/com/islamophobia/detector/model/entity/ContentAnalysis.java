@@ -1,5 +1,6 @@
 package com.islamophobia.detector.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.islamophobia.detector.model.enums.ViolationCategory;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,24 +15,29 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "content_analysis", indexes = {
-    @Index(name = "idx_analysis_content", columnList = "contentItem_id"),
-    @Index(name = "idx_analysis_timestamp", columnList = "analyzedAt")
+    @Index(name = "idx_analysis_content", columnList = "content_item_id"),
+    @Index(name = "idx_analysis_timestamp", columnList = "analyzed_at")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "userFeedbacks"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"contentItem", "userFeedbacks"})
 public class ContentAnalysis {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     /**
      * Reference to the analyzed content
      */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "content_item_id", nullable = false, unique = true)
+    @JoinColumn(name = "content_item_id", nullable = false, unique = true,
+        foreignKey = @ForeignKey(name = "fk_content_analysis_content_item"))
     private ContentItem contentItem;
 
     /**
@@ -44,25 +50,25 @@ public class ContentAnalysis {
      * Category of the violation
      */
     @Enumerated(EnumType.STRING)
-    @Column(length = 50)
+    @Column(name = "category", length = 50)
     private ViolationCategory category;
 
     /**
      * Confidence score (0.0 to 1.0)
      */
-    @Column(nullable = false, columnDefinition = "DECIMAL(4,3)")
+    @Column(name = "violation_confidence", nullable = false, columnDefinition = "DECIMAL(4,3)")
     private BigDecimal violationConfidence;
 
     /**
      * Detailed explanation of why it is/isn't a violation
      */
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "violation_explanation", columnDefinition = "TEXT")
     private String violationExplanation;
 
     /**
      * Counter-argument or factual correction
      */
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "counter_argument", columnDefinition = "TEXT")
     private String counterArgument;
 
     /**
@@ -88,25 +94,25 @@ public class ContentAnalysis {
     /**
      * Full LLM response/raw analysis
      */
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "llm_raw_response", columnDefinition = "TEXT")
     private String llmRawResponse;
 
     /**
      * Model used for analysis
      */
-    @Column(length = 100)
+    @Column(name = "model_used", length = 100)
     private String modelUsed;
 
     /**
      * Tokens consumed in the analysis
      */
-    @Column
+    @Column(name = "tokens_used")
     private Integer tokensUsed;
 
     /**
      * When the analysis was performed
      */
-    @Column(nullable = false)
+    @Column(name = "analyzed_at", nullable = false)
     private Instant analyzedAt;
 
     /**

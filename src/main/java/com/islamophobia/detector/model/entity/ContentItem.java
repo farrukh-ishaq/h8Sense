@@ -1,5 +1,6 @@
 package com.islamophobia.detector.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.islamophobia.detector.model.enums.SourceType;
 import com.islamophobia.detector.model.enums.ViolationCategory;
 import jakarta.persistence.*;
@@ -13,18 +14,23 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "content_item", indexes = {
-    @Index(name = "idx_content_source_platform", columnList = "sourcePlatform"),
-    @Index(name = "idx_content_timestamp", columnList = "createdAt"),
-    @Index(name = "idx_content_type", columnList = "sourceType")
+    @Index(name = "idx_content_source_platform", columnList = "source_platform"),
+    @Index(name = "idx_content_timestamp", columnList = "created_at"),
+    @Index(name = "idx_content_type", columnList = "source_type"),
+    @Index(name = "idx_content_source_url", columnList = "source_url")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "analysis"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"metadata", "analysis"})
 public class ContentItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     /**
@@ -36,45 +42,45 @@ public class ContentItem {
     /**
      * Title of the content (for articles, blog posts, etc.)
      */
-    @Column(length = 500)
+    @Column(name = "title", length = 500)
     private String title;
 
     /**
      * Where the content came from (Twitter, Facebook, etc.)
      */
-    @Column(length = 100)
+    @Column(name = "source_platform", length = 100)
     private String sourcePlatform;
 
     /**
      * Source URL or identifier for the content
      */
-    @Column(length = 500)
+    @Column(name = "source", length = 500)
     private String source;
 
     /**
      * URL or identifier for the content
      */
-    @Column(length = 500)
+    @Column(name = "source_url", length = 500)
     private String sourceUrl;
 
     /**
      * Type of source (SOCIAL_MEDIA, NEWS_ARTICLE, FORUM, etc.)
      */
     @Enumerated(EnumType.STRING)
-    @Column(length = 50)
+    @Column(name = "source_type", length = 50)
     private SourceType sourceType;
 
     /**
      * Author/username of the content
      */
-    @Column(length = 255)
+    @Column(name = "author", length = 255)
     private String author;
 
     /**
      * Initial category prediction (optional, can be determined by LLM)
      */
     @Enumerated(EnumType.STRING)
-    @Column(length = 50)
+    @Column(name = "predicted_category", length = 50)
     private ViolationCategory predictedCategory;
 
     /**
@@ -89,13 +95,13 @@ public class ContentItem {
     /**
      * When the content was created/posted
      */
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     /**
      * When the content was detected by our system
      */
-    @Column(nullable = false)
+    @Column(name = "detected_at", nullable = false)
     private Instant detectedAt;
 
     /**

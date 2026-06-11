@@ -29,9 +29,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ContentAnalysisController {
-    
+
     private final ContentAnalysisService analysisService;
-    
+
     /**
      * Analyze new content with AI
      */
@@ -39,21 +39,23 @@ public class ContentAnalysisController {
     public ResponseEntity<ContentAnalysis> analyzeContent(
             @RequestBody ContentAnalysisRequest request) {
         log.info("Received content analysis request from platform: {}", request.getPlatform());
-        
+
         // Create ContentItem from request
         ContentItem contentItem = ContentItem.builder()
             .content(request.getContent())
+            .sourceType(resolveSourceType(request.getSourceType()))
             .sourcePlatform(request.getPlatform())
+            .source(request.getUrl())
             .sourceUrl(request.getUrl())
             .author(request.getAuthor())
             .build();
-        
+
         // Process with AI
         ContentAnalysis analysis = analysisService.processContent(contentItem);
-        
+
         return ResponseEntity.ok(analysis);
     }
-    
+
     /**
      * Get all confirmed violations (feed generation)
      */
@@ -63,7 +65,7 @@ public class ContentAnalysisController {
         log.info("Fetching violations page {}", pageable.getPageNumber());
         return ResponseEntity.ok(analysisService.getViolations(pageable));
     }
-    
+
     /**
      * Get specific analysis by content ID
      */
@@ -71,12 +73,12 @@ public class ContentAnalysisController {
     public ResponseEntity<ContentAnalysis> getAnalysisByContentId(
             @PathVariable UUID contentId) {
         log.info("Fetching analysis for content {}", contentId);
-        
+
         Optional<ContentAnalysis> analysis = analysisService.getAnalysisByContentId(contentId);
         return analysis.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-    
+
     /**
      * Get feedback statistics for an analysis
      */
@@ -86,7 +88,7 @@ public class ContentAnalysisController {
         log.info("Fetching feedback stats for analysis {}", analysisId);
         return ResponseEntity.ok(analysisService.getFeedbackStats(analysisId));
     }
-    
+
     /**
      * Submit feedback (like/dislike) on an analysis
      */
@@ -95,19 +97,19 @@ public class ContentAnalysisController {
             @PathVariable UUID analysisId,
             @RequestBody FeedbackRequest request,
             HttpServletRequest httpRequest) {
-        
+
         log.info("Received feedback request for analysis {}", analysisId);
-        
+
         // Extract IP address
         String ipAddress = getClientIpAddress(httpRequest);
-        
+
         // Extract device fingerprint from headers (simplified - in production use proper fingerprinting)
-        String deviceFingerprint = httpRequest.getHeader("User-Agent") + 
+        String deviceFingerprint = httpRequest.getHeader("User-Agent") +
                                    "-" + httpRequest.getHeader("Accept-Language");
-        
+
         // Extract user agent
         String userAgent = httpRequest.getHeader("User-Agent");
-        
+
         // Parse feedback type
         UserFeedback.FeedbackType feedbackType;
         try {
@@ -120,7 +122,7 @@ public class ContentAnalysisController {
                     .build()
             );
         }
-        
+
         // Submit feedback
         FeedbackResponse response = analysisService.submitFeedback(
             analysisId,
@@ -130,14 +132,14 @@ public class ContentAnalysisController {
             userAgent,
             request.getComment()
         );
-        
+
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(429).body(response); // Too Many Requests
         }
     }
-    
+
     /**
      * Helper method to extract client IP address
      */
@@ -155,7 +157,7 @@ public class ContentAnalysisController {
             "HTTP_VIA",
             "REMOTE_ADDR"
         };
-        
+
         for (String header : HEADERS_TO_TRY) {
             String ip = request.getHeader(header);
             if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
@@ -163,7 +165,20 @@ public class ContentAnalysisController {
                 return ip.split(",")[0].trim();
             }
         }
-        
+
         return request.getRemoteAddr();
+    }
+
+    private SourceType resolveSourceType(String sourceType) {
+        if (sourceType == null || sourceType.isBlank()) {
+            return SourceType.OTHER;
+        }
+
+        try {
+            return SourceType.valueOf(sourceType.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            log.warn("Unknown source type '{}' provided by client. Falling back to OTHER.", sourceType);
+            return SourceType.OTHER;
+        }
     }
 }

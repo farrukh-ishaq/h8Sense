@@ -52,7 +52,7 @@ public class LlmConfig {
                     .build())
                 .build();
         } else if ("none".equalsIgnoreCase(llmProvider)) {
-            log.warn("LLM provider set to 'none'. AI analysis will be disabled. Set LLM_PROVIDER=openai or ollama to enable.");
+            log.info("LLM provider set to 'none'. AI analysis will run in mock mode. Set LLM_PROVIDER=openai or ollama to enable a real model.");
             // Return a mock/stub ChatModel that doesn't require API keys
             return new MockChatModel();
         } else {

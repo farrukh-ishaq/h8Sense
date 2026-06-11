@@ -6,7 +6,6 @@ import com.islamophobia.detector.model.enums.ViolationCategory;
 import com.islamophobia.detector.model.enums.SourceType;
 import com.islamophobia.detector.repository.ContentAnalysisRepository;
 import com.islamophobia.detector.repository.ContentItemRepository;
-import com.islamophobia.detector.service.ContentFetcherService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -18,34 +17,26 @@ public class DataInitializer implements CommandLineRunner {
 
     private final ContentAnalysisRepository analysisRepository;
     private final ContentItemRepository itemRepository;
-    private final ContentFetcherService contentFetcherService;
 
     public DataInitializer(ContentAnalysisRepository analysisRepository, 
-                          ContentItemRepository itemRepository,
-                          ContentFetcherService contentFetcherService) {
+                          ContentItemRepository itemRepository) {
         this.analysisRepository = analysisRepository;
         this.itemRepository = itemRepository;
-        this.contentFetcherService = contentFetcherService;
     }
 
     @Override
     public void run(String... args) throws Exception {
-        if (analysisRepository.count() == 0) {
+        if (analysisRepository.count() == 0 && itemRepository.count() == 0) {
             System.out.println("🌟 Initializing sample data for Islamophobia Detector...");
             loadSampleData();
             System.out.println("✅ Sample data loaded successfully!");
         } else {
-            System.out.println("ℹ️  Database already contains data. Skipping initialization.");
+            System.out.println("ℹ️  Database already contains application data. Skipping sample initialization.");
         }
-        
-        // Trigger RSS feed fetch on startup to get real content immediately
-        System.out.println("📡 Triggering initial RSS feed fetch...");
-        try {
-            contentFetcherService.fetchAllFeeds();
-            System.out.println("✅ Initial RSS feed fetch completed!");
-        } catch (Exception e) {
-            System.err.println("⚠️  Initial RSS feed fetch failed: " + e.getMessage());
-            System.err.println("   Scheduled fetching will continue in the background.");
+
+        long pendingItems = itemRepository.countByAnalysisIsNull();
+        if (pendingItems > 0) {
+            System.out.printf("⏳ Found %d content items without analysis. Background backfill will process them shortly.%n", pendingItems);
         }
     }
 
@@ -160,6 +151,7 @@ public class DataInitializer implements CommandLineRunner {
         item.setContent(content);
         item.setTitle(source);
         item.setSource(url);
+        item.setSourceUrl(url);
         item.setAuthor(author);
         item.setSourceType(sourceType);
         item.setSourcePlatform(platform);

@@ -1,22 +1,22 @@
 spring:
   application:
     name: islamophobia-detector
-  
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/islamophobia_detector}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
     show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  
+
   # AI Configuration - Supports Multiple LLM Providers
   ai:
     # OpenAI Configuration
@@ -26,7 +26,7 @@ spring:
         options:
           model: ${OPENAI_MODEL:gpt-4o}
           temperature: ${OPENAI_TEMPERATURE:0.3}
-    
+
     # Ollama Configuration (for Llama, Mistral, etc.)
     ollama:
       base-url: ${OLLAMA_HOST:http://localhost:11434}
@@ -103,8 +103,15 @@ app:
     max-per-ip: 5
     block-duration-minutes: 60
   content:
+    fetch-enabled: ${APP_CONTENT_FETCH_ENABLED:true}
     fetch-timeout-seconds: 30
     max-content-length: 50000
+    fetch-initial-delay-ms: ${APP_CONTENT_FETCH_INITIAL_DELAY_MS:15000}
+    fetch-fixed-delay-ms: ${APP_CONTENT_FETCH_FIXED_DELAY_MS:1800000}
+    backfill-enabled: ${APP_CONTENT_BACKFILL_ENABLED:true}
+    backfill-initial-delay-ms: ${APP_CONTENT_BACKFILL_INITIAL_DELAY_MS:10000}
+    backfill-fixed-delay-ms: ${APP_CONTENT_BACKFILL_FIXED_DELAY_MS:60000}
+    backfill-batch-size: ${APP_CONTENT_BACKFILL_BATCH_SIZE:25}
 
 ---
 # Production profile
@@ -112,17 +119,17 @@ spring:
   config:
     activate:
       on-profile: prod
-  
+
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
-  
+
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
-  
+
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -147,18 +154,18 @@ spring:
   config:
     activate:
       on-profile: dev
-  
+
   datasource:
     url: jdbc:h2:mem:testdb
     username: sa
-    password: 
+    password:
     driver-class-name: org.h2.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
-  
+
   h2:
     console:
       enabled: true

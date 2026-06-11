@@ -18,6 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -40,15 +41,18 @@ public class ContentFetcherService {
     @Value("${app.content.max-content-length:50000}")
     private int maxContentLength;
 
+    @Value("${app.content.fetch-enabled:true}")
+    private boolean fetchEnabled;
+
     // Track processed URLs to avoid duplicates
     private final Set<String> processedUrls = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean fetchInProgress = new AtomicBoolean(false);
 
     // Default RSS feeds for Islam-related news and discussions
     // Removed Twitter blog feed as it's protected by Cloudflare and not relevant for hate speech detection
     private static final List<String> DEFAULT_RSS_FEEDS = List.of(
         // Major news outlets with comprehensive world coverage
         "https://www.aljazeera.com/xml/rss/all.xml",
-        "https://feeds.reuters.com/reuters/worldNews",
         "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
         "https://www.theguardian.com/world/rss",
@@ -57,10 +61,6 @@ public class ContentFetcherService {
         // Islamic news and community sources
         "https://www.islamicity.org/feed/",
         "https://muslimmatters.org/feed/",
-        "https://www.islamweb.net/en/rss/index.xml",
-        "https://www.yaqeeninstitute.org/feed/",
-        // Human rights and religious freedom monitoring
-        "https://www.hrw.org/rss/releases/religious-freedom",
         "https://www.state.gov/feed/"
     );
 
@@ -74,21 +74,38 @@ public class ContentFetcherService {
     /**
      * Scheduled task to fetch content from RSS feeds every 30 minutes
      */
-    @Scheduled(fixedRate = 1800000) // 30 minutes
+    @Scheduled(
+        initialDelayString = "${app.content.fetch-initial-delay-ms:15000}",
+        fixedDelayString = "${app.content.fetch-fixed-delay-ms:1800000}"
+    )
     public void fetchFromRssFeeds() {
-        log.info("Starting RSS feed content fetching...");
-        
-        List<String> feedsToProcess = getActiveRssFeeds();
-        
-        for (String feedUrl : feedsToProcess) {
-            try {
-                fetchAndProcessRssFeed(feedUrl);
-            } catch (Exception e) {
-                log.error("Error processing RSS feed {}: {}", feedUrl, e.getMessage());
-            }
+        if (!fetchEnabled) {
+            log.info("RSS feed fetching is disabled by configuration.");
+            return;
         }
-        
-        log.info("RSS feed fetching completed. Processed {} feeds.", feedsToProcess.size());
+
+        if (!fetchInProgress.compareAndSet(false, true)) {
+            log.warn("Skipping RSS fetch because a previous fetch is still running.");
+            return;
+        }
+
+        log.info("Starting RSS feed content fetching...");
+
+        try {
+            List<String> feedsToProcess = getActiveRssFeeds();
+
+            for (String feedUrl : feedsToProcess) {
+                try {
+                    fetchAndProcessRssFeed(feedUrl);
+                } catch (Exception e) {
+                    log.warn("Error processing RSS feed {}: {}", feedUrl, e.getMessage());
+                }
+            }
+
+            log.info("RSS feed fetching completed. Processed {} feeds.", feedsToProcess.size());
+        } finally {
+            fetchInProgress.set(false);
+        }
     }
 
     /**
@@ -97,17 +114,17 @@ public class ContentFetcherService {
     private void fetchAndProcessRssFeed(String feedUrl) {
         try {
             log.info("Fetching RSS feed: {}", feedUrl);
-            
+
             // Set up headers to mimic a browser request
             HttpHeaders headers = new HttpHeaders();
             headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
             headers.set("Accept", "application/rss+xml, application/xml, text/xml, */*");
             headers.set("Accept-Language", "en-US,en;q=0.9");
-            
+
             HttpEntity<String> entity = new HttpEntity<>(headers);
-            
+
             String feedContent = restTemplate.exchange(feedUrl, org.springframework.http.HttpMethod.GET, entity, String.class).getBody();
-            
+
             if (feedContent == null || feedContent.isEmpty()) {
                 log.warn("Empty response from RSS feed: {}", feedUrl);
                 return;
@@ -129,11 +146,11 @@ public class ContentFetcherService {
             }
 
         } catch (org.springframework.web.client.HttpClientErrorException e) {
-            log.error("HTTP client error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
+            log.warn("HTTP client error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
         } catch (org.springframework.web.client.HttpServerErrorException e) {
-            log.error("HTTP server error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
+            log.warn("HTTP server error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
         } catch (Exception e) {
-            log.error("Failed to parse RSS feed {}: {} - Skipping", feedUrl, e.getMessage());
+            log.warn("Failed to parse RSS feed {}: {} - Skipping", feedUrl, e.getMessage());
         }
     }
 
@@ -141,19 +158,27 @@ public class ContentFetcherService {
      * Process a single RSS item
      */
     private void processRssItem(Element item, String feedUrl) {
-        String title = item.selectFirst("title") != null ? 
+        String title = item.selectFirst("title") != null ?
             item.selectFirst("title").text() : "";
-        String description = item.selectFirst("description") != null ? 
+        String description = item.selectFirst("description") != null ?
             item.selectFirst("description").text() : "";
-        String link = item.selectFirst("link") != null ? 
+        String link = item.selectFirst("link") != null ?
             item.selectFirst("link").text() : "";
-        String pubDate = item.selectFirst("pubDate") != null ? 
+        String pubDate = item.selectFirst("pubDate") != null ?
             item.selectFirst("pubDate").text() : LocalDateTime.now().toString();
-        String author = item.selectFirst("author") != null ? 
+        String author = item.selectFirst("author") != null ?
             item.selectFirst("author").text() : "RSS Feed";
+        String platform = extractPlatformFromUrl(feedUrl);
+        String normalizedLink = normalizeSourceUrl(link);
+        String cacheKey = !normalizedLink.isBlank() ? normalizedLink : (feedUrl + "::" + title).trim();
 
         // Skip if already processed
-        if (processedUrls.contains(link) || !isRelevantContent(title, description)) {
+        if (processedUrls.contains(cacheKey) || !isRelevantContent(title, description)) {
+            return;
+        }
+
+        if (!normalizedLink.isBlank() && contentItemRepository.existsBySourceUrl(normalizedLink)) {
+            processedUrls.add(cacheKey);
             return;
         }
 
@@ -166,9 +191,10 @@ public class ContentFetcherService {
             contentItem.setContent(content);
             contentItem.setTitle(title);
             contentItem.setSource(feedUrl);
+            contentItem.setSourceUrl(normalizedLink.isBlank() ? null : normalizedLink);
             contentItem.setAuthor(author);
             contentItem.setSourceType(SourceType.NEWS_ARTICLE);
-            contentItem.setSourcePlatform(extractPlatformFromUrl(feedUrl));
+            contentItem.setSourcePlatform(platform);
             contentItem.setDetectedAt(java.time.Instant.now());
             contentItem.setMetadata(Map.of(
                 "publishedDate", pubDate,
@@ -176,11 +202,11 @@ public class ContentFetcherService {
             ));
 
             // Save and analyze
-            ContentItem savedItem = contentItemRepository.save(contentItem);
-            processedUrls.add(link);
-            
+            ContentItem savedItem = contentItemRepository.saveAndFlush(contentItem);
+            processedUrls.add(cacheKey);
+
             log.info("Saved new content item: {} - {}", savedItem.getId(), title);
-            
+
             // Trigger AI analysis asynchronously
             try {
                 contentAnalysisService.processContent(savedItem);
@@ -203,6 +229,13 @@ public class ContentFetcherService {
             return null;
         }
 
+        String normalizedUrl = normalizeSourceUrl(url);
+        if (!normalizedUrl.isBlank() && contentItemRepository.existsBySourceUrl(normalizedUrl)) {
+            log.info("URL already persisted: {}", normalizedUrl);
+            processedUrls.add(normalizedUrl);
+            return null;
+        }
+
         try {
             String htmlContent = restTemplate.getForObject(url, String.class);
             if (htmlContent == null) {
@@ -210,7 +243,7 @@ public class ContentFetcherService {
             }
 
             Document doc = Jsoup.parse(htmlContent);
-            
+
             // Extract main content (simplified extraction)
             String title = doc.title();
             String content = extractMainContent(doc);
@@ -224,16 +257,17 @@ public class ContentFetcherService {
             contentItem.setContent(truncateContent(content, maxContentLength));
             contentItem.setTitle(title);
             contentItem.setSource(url);
+            contentItem.setSourceUrl(normalizedUrl.isBlank() ? url : normalizedUrl);
             contentItem.setAuthor(author != null ? author : "Web Scraping");
             contentItem.setSourceType(sourceType);
             contentItem.setSourcePlatform(platform);
             contentItem.setDetectedAt(java.time.Instant.now());
 
-            ContentItem savedItem = contentItemRepository.save(contentItem);
-            processedUrls.add(url);
-            
+            ContentItem savedItem = contentItemRepository.saveAndFlush(contentItem);
+            processedUrls.add(normalizedUrl.isBlank() ? url : normalizedUrl);
+
             log.info("Fetched content from URL: {} - {}", url, title);
-            
+
             return savedItem;
 
         } catch (Exception e) {
@@ -263,7 +297,7 @@ public class ContentFetcherService {
      */
     private boolean isRelevantContent(String title, String description) {
         String combinedText = (title + " " + description).toLowerCase();
-        
+
         return MONITORING_KEYWORDS.stream()
             .anyMatch(keyword -> combinedText.contains(keyword.toLowerCase()));
     }
@@ -364,6 +398,14 @@ public class ContentFetcherService {
             return content;
         }
         return content.substring(0, maxLength) + "...";
+    }
+
+    private String normalizeSourceUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "";
+        }
+
+        return url.trim();
     }
 
     /**

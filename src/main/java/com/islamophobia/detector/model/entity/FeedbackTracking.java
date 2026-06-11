@@ -1,5 +1,6 @@
 package com.islamophobia.detector.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -10,71 +11,75 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "feedback_tracking", indexes = {
-    @Index(name = "idx_tracking_ip", columnList = "ipAddress"),
-    @Index(name = "idx_tracking_device", columnList = "deviceFingerprint"),
+    @Index(name = "idx_tracking_ip", columnList = "ip_address"),
+    @Index(name = "idx_tracking_device", columnList = "device_fingerprint"),
     @Index(name = "idx_tracking_analysis", columnList = "analysis_id")
 })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "analysis"})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = "analysis")
 public class FeedbackTracking {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
-    
+
     /**
      * IP address
      */
-    @Column(nullable = false, length = 45)
+    @Column(name = "ip_address", nullable = false, length = 45)
     private String ipAddress;
-    
+
     /**
      * Device fingerprint
      */
-    @Column(length = 255)
+    @Column(name = "device_fingerprint", length = 255)
     private String deviceFingerprint;
-    
+
     /**
      * Reference to the analysis
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "analysis_id", nullable = false)
     private ContentAnalysis analysis;
-    
+
     /**
      * Count of feedbacks from this source for this analysis
      */
     @Column(nullable = false)
     @Builder.Default
     private Integer feedbackCount = 0;
-    
+
     /**
      * Last feedback timestamp
      */
-    @Column(nullable = false)
+    @Column(name = "last_feedback_at", nullable = false)
     private Instant lastFeedbackAt;
-    
+
     /**
      * First feedback timestamp
      */
-    @Column(nullable = false)
+    @Column(name = "first_feedback_at", nullable = false)
     private Instant firstFeedbackAt;
-    
+
     /**
      * Whether this source is blocked due to suspicious activity
      */
-    @Column(nullable = false)
+    @Column(name = "is_blocked", nullable = false)
     @Builder.Default
     private boolean isBlocked = false;
-    
+
     /**
      * Reason for blocking if applicable
      */
-    @Column(length = 500)
+    @Column(name = "block_reason", length = 500)
     private String blockReason;
-    
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
