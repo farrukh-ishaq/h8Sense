@@ -9,12 +9,9 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    # Removed strict healthcheck to allow app startup while model downloads
+    # App will retry connections automatically
+    restart: unless-stopped
     networks:
       - app-network
 
@@ -47,8 +44,6 @@ services:
     container_name: islamophobia-app
     depends_on:
       postgres:
-        condition: service_healthy
-      ollama:
         condition: service_healthy
     env_file:
       - ../.env
