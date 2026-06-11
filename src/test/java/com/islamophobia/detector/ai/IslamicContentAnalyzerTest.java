@@ -62,5 +62,32 @@ class IslamicContentAnalyzerTest {
         assertTrue(result.getQuranReferences().isEmpty());
         assertTrue(result.getHadithReferences().isEmpty());
     }
+
+    @Test
+    void prefersConfiguredModelNameWhenChatModelDoesNotExposeOne() {
+        ChatModel opaqueModel = new ChatModel() {
+            @Override
+            public ChatResponse call(Prompt prompt) {
+                return new MockChatModel().call(prompt);
+            }
+
+            @Override
+            public Flux<ChatResponse> stream(Prompt prompt) {
+                return Flux.just(call(prompt));
+            }
+
+            @Override
+            public String toString() {
+                return "org.springframework.ai.ollama.OllamaChatModel@cafebabe";
+            }
+        };
+
+        IslamicContentAnalyzer analyzer = new IslamicContentAnalyzer(opaqueModel, new ObjectMapper())
+            .overrideConfiguredModelName("llama3.1");
+
+        AnalysisResult result = analyzer.analyzeContent("Example content", Map.of("source", "test"));
+
+        assertEquals("llama3.1", result.getModelUsed());
+    }
 }
 

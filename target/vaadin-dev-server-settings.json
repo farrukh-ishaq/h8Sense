@@ -9,7 +9,7 @@
   "devBundleOutput": "/Users/farrukhishaq/Documents/h8Sense/target/dev-bundle/webapp",
   "devBundleStatsOutput": "/Users/farrukhishaq/Documents/h8Sense/target/dev-bundle/config",
   "jarResourcesFolder": "/Users/farrukhishaq/Documents/h8Sense/frontend/generated/jar-resources",
-  "themeName": "",
+  "themeName": "h8sense",
   "clientServiceWorkerSource": "/Users/farrukhishaq/Documents/h8Sense/target/sw.ts",
   "pwaEnabled": false,
   "offlineEnabled": false,

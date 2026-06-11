@@ -14,10 +14,12 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,7 +83,6 @@ class ContentAnalysisServiceDataJpaTest {
         assertNotNull(savedAnalysis.getContentItem().getId());
         assertEquals(1, contentItemRepository.count());
         assertEquals(1, contentAnalysisRepository.count());
-        assertEquals(savedAnalysis.getContentItem().getId(), savedAnalysis.getContentItem().getId());
         assertTrue(contentItemRepository.existsById(savedAnalysis.getContentItem().getId()));
     }
 
@@ -133,6 +134,7 @@ class ContentAnalysisServiceDataJpaTest {
         contentItem.setTitle("Detailed post");
         contentItem.setSourceType(SourceType.SOCIAL_MEDIA);
         contentItem.setSourcePlatform("Test Platform");
+        contentItem.setMetadata(Map.of("feedUrl", "https://example.test/feed", "publishedDate", "2026-06-11"));
         contentItem.setDetectedAt(Instant.now());
 
         ContentAnalysis savedAnalysis = contentAnalysisService.processContent(contentItem);
@@ -144,8 +146,47 @@ class ContentAnalysisServiceDataJpaTest {
             .orElseThrow();
 
         assertEquals("Detailed post", details.getContentItem().getTitle());
+        assertEquals("https://example.test/feed", details.getContentItem().getMetadata().get("feedUrl"));
         assertEquals(List.of("49:13"), details.getQuranReferences());
         assertEquals(List.of("Muslim 2564"), details.getHadithReferences());
+    }
+
+    @Test
+    void getRecentAnalysesLoadsCollectionsForDetachedGridUsage() {
+        when(islamicContentAnalyzer.analyzeContent(any(), anyMap())).thenReturn(AnalysisResult.builder()
+            .isViolation(true)
+            .confidence(BigDecimal.valueOf(0.88))
+            .category("STEREOTYPING")
+            .explanation("Detected harmful stereotyping")
+            .counterArgument("Counter argument")
+            .quranReferences(List.of("49:13"))
+            .hadithReferences(List.of("Muslim 2564"))
+            .rawResponse("{}")
+            .modelUsed("test-model")
+            .build());
+
+        ContentItem contentItem = new ContentItem();
+        contentItem.setContent("Grid content about Muslims");
+        contentItem.setTitle("Grid post");
+        contentItem.setSourceType(SourceType.SOCIAL_MEDIA);
+        contentItem.setSourcePlatform("Grid Platform");
+        contentItem.setMetadata(Map.of("feedUrl", "https://example.test/grid"));
+        contentItem.setDetectedAt(Instant.now());
+
+        contentAnalysisService.processContent(contentItem);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        ContentAnalysis analysis = contentAnalysisService.getRecentAnalyses(PageRequest.of(0, 10))
+            .getContent()
+            .stream()
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(1, analysis.getQuranReferences().size());
+        assertEquals(1, analysis.getHadithReferences().size());
+        assertEquals("https://example.test/grid", analysis.getContentItem().getMetadata().get("feedUrl"));
     }
 }
 

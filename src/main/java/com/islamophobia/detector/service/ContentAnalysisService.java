@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -178,7 +177,8 @@ public class ContentAnalysisService {
      */
     @Transactional(readOnly = true)
     public Page<ContentAnalysis> getViolations(Pageable pageable) {
-        return analysisRepository.findByIsConfirmedViolationTrue(pageable);
+        return analysisRepository.findByIsConfirmedViolationTrue(pageable)
+            .map(this::initializeForUi);
     }
 
     /**
@@ -186,7 +186,8 @@ public class ContentAnalysisService {
      */
     @Transactional(readOnly = true)
     public Page<ContentAnalysis> getRecentAnalyses(Pageable pageable) {
-        return analysisRepository.findAllByOrderByAnalyzedAtDesc(pageable);
+        return analysisRepository.findAllByOrderByAnalyzedAtDesc(pageable)
+            .map(this::initializeForUi);
     }
 
     /**
@@ -196,7 +197,8 @@ public class ContentAnalysisService {
     public Page<ContentAnalysis> getViolationsByCategory(String category, Pageable pageable) {
         try {
             ViolationCategory cat = ViolationCategory.valueOf(category.toUpperCase());
-            return analysisRepository.findByIsConfirmedViolationTrueAndCategory(cat, pageable);
+            return analysisRepository.findByIsConfirmedViolationTrueAndCategory(cat, pageable)
+                .map(this::initializeForUi);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid violation category requested: {}. Returning empty page.", category);
             return Page.empty(pageable);
@@ -208,7 +210,8 @@ public class ContentAnalysisService {
      */
     @Transactional(readOnly = true)
     public Optional<ContentAnalysis> getAnalysisByContentId(UUID contentId) {
-        return analysisRepository.findByContentItemId(contentId);
+        return analysisRepository.findByContentItemId(contentId)
+            .map(this::initializeForUi);
     }
 
     /**
@@ -217,11 +220,7 @@ public class ContentAnalysisService {
     @Transactional(readOnly = true)
     public Optional<ContentAnalysis> getAnalysisDetails(UUID analysisId) {
         return analysisRepository.findWithContentItemById(analysisId)
-            .map(analysis -> {
-                Hibernate.initialize(analysis.getQuranReferences());
-                Hibernate.initialize(analysis.getHadithReferences());
-                return analysis;
-            });
+            .map(this::initializeForUi);
     }
 
     /**
@@ -290,5 +289,18 @@ public class ContentAnalysisService {
             log.warn("Unknown violation category '{}' returned by analyzer. Falling back to OTHER.", category);
             return ViolationCategory.OTHER;
         }
+    }
+
+    private ContentAnalysis initializeForUi(ContentAnalysis analysis) {
+        if (analysis == null) {
+            return null;
+        }
+
+        if (analysis.getContentItem() != null) {
+            Hibernate.initialize(analysis.getContentItem().getMetadata());
+        }
+        Hibernate.initialize(analysis.getQuranReferences());
+        Hibernate.initialize(analysis.getHadithReferences());
+        return analysis;
     }
 }

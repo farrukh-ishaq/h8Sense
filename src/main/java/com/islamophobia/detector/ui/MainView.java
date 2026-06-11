@@ -1,130 +1,103 @@
 package com.islamophobia.detector.ui;
 
 import com.islamophobia.detector.model.entity.ContentAnalysis;
+import com.islamophobia.detector.model.entity.ContentItem;
 import com.islamophobia.detector.model.entity.UserFeedback;
 import com.islamophobia.detector.service.ContentAnalysisService;
+import com.islamophobia.detector.ui.components.AnalysisDetailPanel;
+import com.islamophobia.detector.ui.components.DashboardFilterPanel;
+import com.islamophobia.detector.ui.components.DashboardFooter;
+import com.islamophobia.detector.ui.components.DashboardHeader;
+import com.islamophobia.detector.ui.components.DashboardSummaryPanel;
+import com.islamophobia.detector.ui.components.DashboardViewSupport;
 import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
- * Main view displaying detected violations with feedback functionality
+ * Dashboard view composed of a stable header/footer and a richer body with filters, grid, and details.
  */
 @Route("")
 @PageTitle("Islamophobia Detector - Dashboard")
 public class MainView extends VerticalLayout {
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
+    private static final String FILTER_ALL = "ALL";
+    private static final String FILTER_VIOLATIONS = "VIOLATIONS_ONLY";
+    private static final String FILTER_NON_VIOLATIONS = "NON_VIOLATIONS_ONLY";
 
     private final ContentAnalysisService analysisService;
 
-    private final Grid<ContentAnalysis> violationsGrid = new Grid<>(ContentAnalysis.class, false);
-    private final Div detailPanel = new Div();
-    private final ComboBox<String> categoryFilter = new ComboBox<>("Filter by Category");
-    private final Paragraph statusMessage = new Paragraph();
-    private final Span totalAnalysesValue = new Span("0");
-    private final Span confirmedViolationsValue = new Span("0");
-    private final Span nonViolationsValue = new Span("0");
-    private final Span pendingContentValue = new Span("0");
-    private final Span likesValue = new Span("0");
-    private final Span dislikesValue = new Span("0");
+    private final Grid<ContentAnalysis> analysesGrid = new Grid<>(ContentAnalysis.class, false);
+    private final AnalysisDetailPanel detailPanel = new AnalysisDetailPanel();
+    private final DashboardSummaryPanel summaryPanel = new DashboardSummaryPanel();
+    private final DashboardFilterPanel filterPanel = new DashboardFilterPanel(
+        this::refreshDashboardData,
+        this::showPlaceholderDetails,
+        this::onFilterChanged
+    );
+
+    private List<ContentAnalysis> allAnalyses = List.of();
+    private List<ContentAnalysis> filteredAnalyses = List.of();
+    private UUID selectedAnalysisId;
+    private boolean suppressFilterEvents;
 
     public MainView(ContentAnalysisService analysisService) {
         this.analysisService = analysisService;
 
+        addClassName("app-shell");
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
+        setPadding(false);
+        setSpacing(false);
 
-        add(createHeader());
-        add(createSummaryCards());
-        add(createFilters());
-        add(createViolationsGrid());
-        add(createDetailPanel());
-        expand(violationsGrid);
+        configureFilters();
+        configureGrid();
+
+        Div header = createHeaderSection();
+        Div body = createBodySection();
+        Div footer = createFooterSection();
+
+        add(header, body, footer);
+        expand(body);
     }
 
     @Override
     protected void onAttach(AttachEvent event) {
         super.onAttach(event);
-        loadViolations();
+        refreshDashboardData();
     }
 
-    private Div createHeader() {
-        H1 title = new H1("🛡️ Islamophobia Content Detector");
-        title.getStyle().set("margin-top", "0");
+    private void configureFilters() {
+        suppressFilterEvents = true;
 
-        Paragraph subtitle = new Paragraph(
-            "AI-powered detection of hate speech against Islam with scholarly responses"
-        );
-        subtitle.getStyle().set("color", "#666");
+        filterPanel.getStatusFilter().setItems(FILTER_ALL, FILTER_VIOLATIONS, FILTER_NON_VIOLATIONS);
+        filterPanel.getStatusFilter().setValue(FILTER_ALL);
 
-        HorizontalLayout headerLayout = new HorizontalLayout(title);
-        headerLayout.setAlignItems(Alignment.BASELINE);
-
-        Div headerDiv = new Div(title, subtitle);
-        headerDiv.setWidthFull();
-        return headerDiv;
-    }
-
-    private HorizontalLayout createSummaryCards() {
-        HorizontalLayout summaryLayout = new HorizontalLayout(
-            createStatCard("Analyses", totalAnalysesValue),
-            createStatCard("Confirmed Violations", confirmedViolationsValue),
-            createStatCard("Non-Violations", nonViolationsValue),
-            createStatCard("Pending Content", pendingContentValue),
-            createStatCard("Likes", likesValue),
-            createStatCard("Dislikes", dislikesValue)
-        );
-        summaryLayout.setWidthFull();
-        summaryLayout.setSpacing(true);
-        return summaryLayout;
-    }
-
-    private Div createStatCard(String label, Span value) {
-        value.getStyle()
-            .set("font-size", "1.5rem")
-            .set("font-weight", "700");
-
-        Span labelSpan = new Span(label);
-        labelSpan.getStyle().set("color", "#666");
-
-        Div card = new Div(value, labelSpan);
-        card.getStyle()
-            .set("border", "1px solid #e5e7eb")
-            .set("border-radius", "10px")
-            .set("padding", "12px 16px")
-            .set("background", "white")
-            .set("display", "flex")
-            .set("flex-direction", "column")
-            .set("gap", "4px")
-            .set("min-width", "150px");
-        return card;
-    }
-
-    private HorizontalLayout createFilters() {
-        categoryFilter.setItems(
-            "ALL",
+        filterPanel.getCategoryFilter().setItems(
+            FILTER_ALL,
             "DIRECT_INSULT",
             "MISREPRESENTATION",
             "STEREOTYPING",
@@ -136,174 +109,360 @@ public class MainView extends VerticalLayout {
             "MOCKERY_PRACTICES",
             "OTHER"
         );
-        categoryFilter.setValue("ALL");
-        categoryFilter.addValueChangeListener(e -> loadViolations());
+        filterPanel.getCategoryFilter().setValue(FILTER_ALL);
 
-        Button refreshButton = new Button("⟳ Refresh", e -> loadViolations());
-        refreshButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        filterPanel.getPlatformFilter().setItems(FILTER_ALL);
+        filterPanel.getPlatformFilter().setValue(FILTER_ALL);
 
-        statusMessage.getStyle().set("color", "#475569");
-        statusMessage.getStyle().set("margin", "0");
-
-        HorizontalLayout filterLayout = new HorizontalLayout(categoryFilter, refreshButton, statusMessage);
-        filterLayout.setAlignItems(Alignment.CENTER);
-        filterLayout.setWidthFull();
-        return filterLayout;
+        suppressFilterEvents = false;
     }
 
-    private Div createViolationsGrid() {
-        violationsGrid.addColumn(a -> defaultString(a.getContentItem().getTitle(), "Untitled content"))
-            .setHeader("Title")
+    private void configureGrid() {
+        analysesGrid.addClassName("dashboard-grid");
+        analysesGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES, GridVariant.LUMO_WRAP_CELL_CONTENT);
+        analysesGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+
+        analysesGrid.addComponentColumn(this::createContentCell)
+            .setHeader("Content & Source")
+            .setFlexGrow(2)
             .setAutoWidth(true);
-        violationsGrid.addColumn(a -> preview(defaultString(a.getContentItem().getContent(), ""), 140))
-            .setHeader("Content Preview")
-            .setFlexGrow(2);
-        violationsGrid.addColumn(a -> a.getContentItem().getSourcePlatform())
-            .setHeader("Platform");
-        violationsGrid.addColumn(a -> a.isConfirmedViolation() ? "Violation" : "No violation")
+
+        analysesGrid.addComponentColumn(this::createStatusCell)
             .setHeader("Status")
+            .setFlexGrow(0)
             .setAutoWidth(true);
-        violationsGrid.addColumn(a -> String.format("%.1f%%", a.getViolationConfidence().doubleValue() * 100))
-            .setHeader("Confidence");
-        violationsGrid.addColumn(a -> a.getCategory() != null ? a.getCategory().name() : "OTHER")
-            .setHeader("Category");
-        violationsGrid.addColumn(a -> DATE_TIME_FORMATTER.format(a.getAnalyzedAt()))
-            .setHeader("Analyzed At")
+
+        analysesGrid.addComponentColumn(this::createConfidenceCell)
+            .setHeader("Confidence & Timing")
+            .setFlexGrow(0)
             .setAutoWidth(true);
-        violationsGrid.addComponentColumn(this::createFeedbackButtons)
-            .setHeader("Feedback");
 
-        violationsGrid.addItemClickListener(e -> showDetails(e.getItem().getId()));
-        violationsGrid.setSizeFull();
-        violationsGrid.setHeight("400px");
+        analysesGrid.addComponentColumn(this::createEvidenceCell)
+            .setHeader("Evidence & Model")
+            .setFlexGrow(1)
+            .setAutoWidth(true);
 
-        Div gridContainer = new Div(violationsGrid);
-        gridContainer.setSizeFull();
-        return gridContainer;
+        analysesGrid.addComponentColumn(this::createFeedbackButtons)
+            .setHeader("Feedback")
+            .setFlexGrow(0)
+            .setAutoWidth(true);
+
+        analysesGrid.asSingleSelect().addValueChangeListener(event -> {
+            ContentAnalysis analysis = event.getValue();
+            if (analysis == null) {
+                showPlaceholderDetails();
+                return;
+            }
+            selectedAnalysisId = analysis.getId();
+            showDetails(analysis.getId());
+        });
     }
 
-    private HorizontalLayout createFeedbackButtons(ContentAnalysis analysis) {
-        Button likeBtn = new Button("👍", e -> submitFeedback(analysis, true));
-        Button dislikeBtn = new Button("👎", e -> submitFeedback(analysis, false));
-
-        likeBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY_INLINE);
-        dislikeBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY_INLINE);
-
-        return new HorizontalLayout(likeBtn, dislikeBtn);
+    private Div createHeaderSection() {
+        return new DashboardHeader();
     }
 
-    private Div createDetailPanel() {
-        detailPanel.setText("Select a violation to view details");
-        detailPanel.getStyle()
-            .set("border", "1px solid #ddd")
-            .set("padding", "16px")
-            .set("border-radius", "4px")
-            .set("background-color", "#f9f9f9");
-        detailPanel.setWidthFull();
-        return detailPanel;
+    private Div createBodySection() {
+        Div body = new Div();
+        body.addClassName("app-body");
+
+        body.add(
+            summaryPanel,
+            filterPanel,
+            createContentSection()
+        );
+        return body;
     }
 
-    private void loadViolations() {
-        PageRequest pageRequest = PageRequest.of(0, 50, Sort.by("analyzedAt").descending());
-        Page<ContentAnalysis> results;
+    private Div createFooterSection() {
+        return new DashboardFooter();
+    }
 
-        String selectedCategory = categoryFilter.getValue();
-        if ("ALL".equals(selectedCategory)) {
-            results = analysisService.getViolations(pageRequest);
-        } else {
-            results = analysisService.getViolationsByCategory(selectedCategory, pageRequest);
+    private Component createContentSection() {
+        Div leftPane = new Div();
+        leftPane.addClassNames("dashboard-card", "dashboard-pane");
+        leftPane.add(new H2("Recent Analyses"), analysesGrid);
+
+        Div rightPane = new Div();
+        rightPane.addClassNames("dashboard-card", "dashboard-pane");
+        rightPane.add(new H2("Detail Inspector"), detailPanel);
+
+        SplitLayout splitLayout = new SplitLayout(leftPane, rightPane);
+        splitLayout.addClassName("dashboard-split");
+        splitLayout.setSizeFull();
+        splitLayout.setSplitterPosition(58);
+        return splitLayout;
+    }
+
+    private void onFilterChanged() {
+        if (suppressFilterEvents) {
+            return;
         }
+        applyFilters();
+    }
 
-        boolean showingFallback = results.isEmpty();
-        if (showingFallback) {
-            results = analysisService.getRecentAnalyses(pageRequest);
-            statusMessage.setText(results.isEmpty()
-                ? "No analyses available yet. Background processing may still be running."
-                : "No confirmed violations yet. Showing recent analyses instead.");
-        } else {
-            statusMessage.setText("Showing confirmed violations.");
-        }
+    private void refreshDashboardData() {
+        allAnalyses = analysisService.getRecentAnalyses(PageRequest.of(0, 100, Sort.by("analyzedAt").descending())).getContent();
+        updatePlatformFilterOptions();
+        applyFilters();
+    }
 
-        violationsGrid.setItems(results.getContent());
+    private void applyFilters() {
+        filteredAnalyses = allAnalyses.stream()
+            .filter(this::matchesStatus)
+            .filter(this::matchesCategory)
+            .filter(this::matchesPlatform)
+            .toList();
 
+        analysesGrid.setItems(filteredAnalyses);
         updateDashboardStats();
+        updateStatusMessage();
+        syncSelectionAndDetails();
+    }
+
+    private void updatePlatformFilterOptions() {
+        String currentValue = filterPanel.getPlatformFilter().getValue();
+        List<String> options = Stream.concat(
+                Stream.of(FILTER_ALL),
+                allAnalyses.stream()
+                    .map(ContentAnalysis::getContentItem)
+                    .filter(Objects::nonNull)
+                    .map(ContentItem::getSourcePlatform)
+                    .filter(platform -> platform != null && !platform.isBlank())
+                    .distinct()
+                    .sorted()
+            )
+            .toList();
+
+        suppressFilterEvents = true;
+        try {
+            filterPanel.getPlatformFilter().setItems(options);
+            filterPanel.getPlatformFilter().setValue(options.contains(currentValue) ? currentValue : FILTER_ALL);
+        } finally {
+            suppressFilterEvents = false;
+        }
     }
 
     private void updateDashboardStats() {
         Map<String, Long> dashboardStats = analysisService.getDashboardStats();
-        Map<String, Long> stats = analysisService.getFeedbackStats();
-        totalAnalysesValue.setText(String.valueOf(dashboardStats.getOrDefault("totalAnalyses", 0L)));
-        confirmedViolationsValue.setText(String.valueOf(dashboardStats.getOrDefault("confirmedViolations", 0L)));
-        nonViolationsValue.setText(String.valueOf(dashboardStats.getOrDefault("nonViolations", 0L)));
-        pendingContentValue.setText(String.valueOf(dashboardStats.getOrDefault("pendingContent", 0L)));
-        likesValue.setText(String.valueOf(stats.getOrDefault("likes", 0L)));
-        dislikesValue.setText(String.valueOf(stats.getOrDefault("dislikes", 0L)));
+        Map<String, Long> feedbackStats = analysisService.getFeedbackStats();
+
+        BigDecimal totalConfidence = filteredAnalyses.stream()
+            .map(ContentAnalysis::getViolationConfidence)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal average = filteredAnalyses.isEmpty()
+            ? BigDecimal.ZERO
+            : totalConfidence.divide(BigDecimal.valueOf(filteredAnalyses.size()), 3, RoundingMode.HALF_UP);
+
+        long platforms = filteredAnalyses.stream()
+            .map(ContentAnalysis::getContentItem)
+            .filter(Objects::nonNull)
+            .map(ContentItem::getSourcePlatform)
+            .filter(platform -> platform != null && !platform.isBlank())
+            .distinct()
+            .count();
+
+        summaryPanel.update(
+            dashboardStats.getOrDefault("totalAnalyses", 0L),
+            dashboardStats.getOrDefault("confirmedViolations", 0L),
+            dashboardStats.getOrDefault("nonViolations", 0L),
+            dashboardStats.getOrDefault("pendingContent", 0L),
+            filteredAnalyses.size(),
+            DashboardViewSupport.formatConfidence(average),
+            platforms,
+            feedbackStats.getOrDefault("likes", 0L),
+            feedbackStats.getOrDefault("dislikes", 0L)
+        );
     }
 
-    private void showDetails(java.util.UUID analysisId) {
-        ContentAnalysis analysis = analysisService.getAnalysisDetails(analysisId)
-            .orElse(null);
-
-        if (analysis == null) {
-            detailPanel.removeAll();
-            detailPanel.add(new Paragraph("Unable to load analysis details."));
+    private void updateStatusMessage() {
+        if (allAnalyses.isEmpty()) {
+            filterPanel.setStatusMessage("No analyses are available yet. Background ingestion or manual analysis may still be pending.");
+            return;
+        }
+        if (filteredAnalyses.isEmpty()) {
+            filterPanel.setStatusMessage("No rows match the current filters. Adjust status, category, or platform filters.");
             return;
         }
 
-        Div content = new Div();
-        content.add(new Paragraph("📰 Title: " + defaultString(analysis.getContentItem().getTitle(), "Untitled content")));
-        content.add(new Paragraph("📝 Content: " + defaultString(analysis.getContentItem().getContent(), "")));
-        content.add(new Paragraph("📍 Platform: " + defaultString(analysis.getContentItem().getSourcePlatform(), "Unknown")));
-        content.add(new Paragraph("🏷️ Category: " + (analysis.getCategory() != null ? analysis.getCategory() : "OTHER")));
-        content.add(new Paragraph("🚦 Status: " + (analysis.isConfirmedViolation() ? "Confirmed violation" : "No violation detected")));
-        content.add(new Paragraph("✅ Confidence: " + String.format("%.1f%%", analysis.getViolationConfidence().doubleValue() * 100)));
-        content.add(new Paragraph("📖 Explanation: " + defaultString(analysis.getViolationExplanation(), "No explanation available.")));
-        content.add(new Paragraph("💬 Counter-argument: " + defaultString(analysis.getCounterArgument(), "No counter-argument available.")));
+        long visibleViolations = filteredAnalyses.stream().filter(ContentAnalysis::isConfirmedViolation).count();
+        filterPanel.setStatusMessage(String.format(
+            "Showing %d analyses (%d confirmed violations) from the latest %d records.",
+            filteredAnalyses.size(),
+            visibleViolations,
+            allAnalyses.size()
+        ));
+    }
+
+    private void syncSelectionAndDetails() {
+        if (filteredAnalyses.isEmpty()) {
+            showPlaceholderDetails();
+            return;
+        }
+
+        ContentAnalysis selected = filteredAnalyses.stream()
+            .filter(analysis -> analysis.getId().equals(selectedAnalysisId))
+            .findFirst()
+            .orElse(filteredAnalyses.get(0));
+
+        analysesGrid.select(selected);
+        showDetails(selected.getId());
+    }
+
+    private boolean matchesStatus(ContentAnalysis analysis) {
+        String selected = filterPanel.getStatusFilter().getValue();
+        if (selected == null || FILTER_ALL.equals(selected)) {
+            return true;
+        }
+        if (FILTER_VIOLATIONS.equals(selected)) {
+            return analysis.isConfirmedViolation();
+        }
+        if (FILTER_NON_VIOLATIONS.equals(selected)) {
+            return !analysis.isConfirmedViolation();
+        }
+        return true;
+    }
+
+    private boolean matchesCategory(ContentAnalysis analysis) {
+        String selected = filterPanel.getCategoryFilter().getValue();
+        if (selected == null || FILTER_ALL.equals(selected)) {
+            return true;
+        }
+        return analysis.getCategory() != null && selected.equalsIgnoreCase(analysis.getCategory().name());
+    }
+
+    private boolean matchesPlatform(ContentAnalysis analysis) {
+        String selected = filterPanel.getPlatformFilter().getValue();
+        if (selected == null || FILTER_ALL.equals(selected)) {
+            return true;
+        }
+        ContentItem item = analysis.getContentItem();
+        return item != null && selected.equalsIgnoreCase(DashboardViewSupport.defaultString(item.getSourcePlatform(), ""));
+    }
+
+    private void showDetails(UUID analysisId) {
+        ContentAnalysis analysis = analysisService.getAnalysisDetails(analysisId).orElse(null);
+        if (analysis == null) {
+            showPlaceholderDetails();
+            return;
+        }
+
+        selectedAnalysisId = analysisId;
+        Map<String, Long> feedbackStats = analysisService.getFeedbackStats(analysisId);
+        detailPanel.showAnalysis(analysis, feedbackStats);
+    }
+
+    private void showPlaceholderDetails() {
+        selectedAnalysisId = null;
+        detailPanel.showPlaceholder();
+        analysesGrid.deselectAll();
+    }
+
+    private Component createContentCell(ContentAnalysis analysis) {
+        ContentItem item = analysis.getContentItem();
+
+        Div cell = new Div();
+        cell.addClassName("grid-cell-stack");
+
+        Span title = new Span(DashboardViewSupport.defaultString(item.getTitle(), "Untitled content"));
+        title.addClassName("grid-cell-title");
+
+        Paragraph preview = new Paragraph(DashboardViewSupport.preview(DashboardViewSupport.defaultString(item.getContent(), ""), 150));
+        preview.addClassName("grid-cell-preview");
+
+        HorizontalLayout badges = new HorizontalLayout(
+            DashboardViewSupport.createBadge(DashboardViewSupport.defaultString(item.getSourcePlatform(), "Unknown platform"), "badge--info"),
+            DashboardViewSupport.createBadge(item.getSourceType() != null ? item.getSourceType().name() : "OTHER", "badge--neutral")
+        );
+        badges.addClassName("grid-cell-badges");
+        badges.setSpacing(true);
+
+        Span author = new Span("Author: " + DashboardViewSupport.defaultString(item.getAuthor(), "Unknown"));
+        author.addClassName("grid-cell-meta");
+
+        cell.add(title, preview, badges, author);
+        return cell;
+    }
+
+    private Component createStatusCell(ContentAnalysis analysis) {
+        Div cell = new Div();
+        cell.addClassName("grid-cell-stack");
+        cell.add(
+            createStatusBadge(analysis),
+            DashboardViewSupport.createMutedCaption(analysis.getCategory() != null ? analysis.getCategory().name() : "OTHER")
+        );
+        return cell;
+    }
+
+    private Component createConfidenceCell(ContentAnalysis analysis) {
+        Div cell = new Div();
+        cell.addClassName("grid-cell-stack");
+        cell.add(
+            DashboardViewSupport.createEmphasisValue(DashboardViewSupport.formatConfidence(analysis.getViolationConfidence())),
+            DashboardViewSupport.createMutedCaption("Analyzed: " + DashboardViewSupport.formatInstant(analysis.getAnalyzedAt())),
+            DashboardViewSupport.createMutedCaption("Detected: " + DashboardViewSupport.formatInstant(analysis.getContentItem().getDetectedAt()))
+        );
+        return cell;
+    }
+
+    private Component createEvidenceCell(ContentAnalysis analysis) {
+        Div cell = new Div();
+        cell.addClassName("grid-cell-stack");
+        cell.add(
+            DashboardViewSupport.createMutedCaption("Quran refs: " + analysis.getQuranReferences().size()),
+            DashboardViewSupport.createMutedCaption("Hadith refs: " + analysis.getHadithReferences().size()),
+            DashboardViewSupport.createMutedCaption("Tokens: " + (analysis.getTokensUsed() != null ? analysis.getTokensUsed() : "n/a")),
+            DashboardViewSupport.createMutedCaption("Model: " + DashboardViewSupport.defaultString(analysis.getModelUsed(), "Unknown"))
+        );
+
         if (analysis.getContentItem().getSourceUrl() != null && !analysis.getContentItem().getSourceUrl().isBlank()) {
-            content.add(new Anchor(analysis.getContentItem().getSourceUrl(), "🔗 Open source article"));
+            Anchor sourceLink = new Anchor(analysis.getContentItem().getSourceUrl(), "Open source");
+            sourceLink.setTarget("_blank");
+            sourceLink.addClassName("source-link");
+            cell.add(sourceLink);
         }
+        return cell;
+    }
 
-        if (analysis.getQuranReferences() != null && !analysis.getQuranReferences().isEmpty()) {
-            content.add(new Paragraph("📿 Quran References: " + String.join(", ", analysis.getQuranReferences())));
-        }
-        if (analysis.getHadithReferences() != null && !analysis.getHadithReferences().isEmpty()) {
-            content.add(new Paragraph("📚 Hadith References: " + String.join(", ", analysis.getHadithReferences())));
-        }
+    private HorizontalLayout createFeedbackButtons(ContentAnalysis analysis) {
+        Button likeBtn = new Button("👍", event -> submitFeedback(analysis, true));
+        Button dislikeBtn = new Button("👎", event -> submitFeedback(analysis, false));
 
-        detailPanel.removeAll();
-        detailPanel.add(content);
+        likeBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY_INLINE);
+        dislikeBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY_INLINE);
+
+        HorizontalLayout actions = new HorizontalLayout(likeBtn, dislikeBtn);
+        actions.addClassName("feedback-actions");
+        actions.setSpacing(false);
+        return actions;
+    }
+
+    private Span createStatusBadge(ContentAnalysis analysis) {
+        return analysis.isConfirmedViolation()
+            ? DashboardViewSupport.createBadge("Confirmed violation", "badge--danger")
+            : DashboardViewSupport.createBadge("No violation", "badge--success");
     }
 
     private void submitFeedback(ContentAnalysis analysis, boolean isPositive) {
         try {
-            String ipAddress = "127.0.0.1"; // Local testing
-            String deviceFingerprint = "vaadin-ui";
-            String userAgent = "Vaadin UI";
-            String comment = null;
-
             analysisService.submitFeedback(
                 analysis.getId(),
                 isPositive ? UserFeedback.FeedbackType.LIKE : UserFeedback.FeedbackType.DISLIKE,
-                ipAddress,
-                deviceFingerprint,
-                userAgent,
-                comment
+                "127.0.0.1",
+                "vaadin-ui",
+                "Vaadin UI",
+                null
             );
-            Notification.show(isPositive ? "✅ Thank you for your feedback!" : "❌ Feedback recorded", 2000, Notification.Position.MIDDLE);
-            loadViolations();
-        } catch (Exception e) {
-            Notification.show("⚠️ Error submitting feedback: " + e.getMessage(), 2000, Notification.Position.MIDDLE);
+            Notification.show(
+                isPositive ? "✅ Thank you for your feedback!" : "❌ Feedback recorded",
+                2000,
+                Notification.Position.MIDDLE
+            );
+            refreshDashboardData();
+        } catch (Exception ex) {
+            Notification.show("⚠️ Error submitting feedback: " + ex.getMessage(), 2500, Notification.Position.MIDDLE);
         }
-    }
-
-    private String preview(String text, int maxLength) {
-        if (text == null || text.isBlank()) {
-            return "";
-        }
-        return text.length() <= maxLength ? text : text.substring(0, maxLength) + "…";
-    }
-
-    private String defaultString(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
     }
 }

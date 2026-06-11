@@ -3,10 +3,13 @@ package com.islamophobia.detector.ai;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,8 @@ public class IslamicContentAnalyzer {
     private final ChatModel chatModel;
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
+    @Value("${spring.ai.ollama.chat.options.model:}")
+    private String configuredModelName = "";
 
     // System prompt that defines the AI's role and knowledge base
     private static final String SYSTEM_PROMPT = """
@@ -44,6 +49,12 @@ public class IslamicContentAnalyzer {
         this.objectMapper = objectMapper;
         this.chatClient = ChatClient.builder(chatModel).build();
     }
+
+    IslamicContentAnalyzer overrideConfiguredModelName(String configuredModelName) {
+        this.configuredModelName = configuredModelName == null ? "" : configuredModelName.trim();
+        return this;
+    }
+
 
     /**
      * Analyze content for Islamophobic violations
@@ -125,7 +136,7 @@ public class IslamicContentAnalyzer {
                 .quranReferences(parseStringList(payload.get("quranReferences")))
                 .hadithReferences(parseStringList(payload.get("hadithReferences")))
                 .rawResponse(response)
-                .modelUsed(chatModel.toString())
+                .modelUsed(resolveModelName())
                 .tokensUsed(null)
                 .build();
         } catch (Exception ex) {
@@ -139,7 +150,7 @@ public class IslamicContentAnalyzer {
                 .quranReferences(List.of())
                 .hadithReferences(List.of())
                 .rawResponse(response)
-                .modelUsed(chatModel.toString())
+                .modelUsed(resolveModelName())
                 .build();
         }
     }
@@ -174,9 +185,99 @@ public class IslamicContentAnalyzer {
             .quranReferences(List.of())
             .hadithReferences(List.of())
             .rawResponse(errorMessage)
-            .modelUsed(chatModel.toString())
+            .modelUsed(resolveModelName())
             .tokensUsed(null)
             .build();
+    }
+
+    private String resolveModelName() {
+        String resolved = extractModelName(chatModel);
+        if (hasText(resolved)) {
+            return resolved.trim();
+        }
+        if (hasText(configuredModelName)) {
+            return configuredModelName;
+        }
+
+        String simpleName = chatModel.getClass().getSimpleName();
+        if (hasText(simpleName)) {
+            return simpleName;
+        }
+
+        String fallback = chatModel.toString();
+        return hasText(fallback) ? fallback : "Unknown model";
+    }
+
+    private String extractModelName(Object source) {
+        if (source == null) {
+            return null;
+        }
+
+        String directModel = invokeStringGetter(source, "getModel");
+        if (hasText(directModel)) {
+            return directModel;
+        }
+
+        Object options = invokeGetter(source, "getDefaultOptions");
+        if (options == null) {
+            options = invokeGetter(source, "getOptions");
+        }
+        if (options == null) {
+            options = readField(source, "defaultOptions");
+        }
+        if (options == null) {
+            options = readField(source, "options");
+        }
+
+        if (options != null) {
+            String optionModel = invokeStringGetter(options, "getModel");
+            if (hasText(optionModel)) {
+                return optionModel;
+            }
+
+            Object fieldModel = readField(options, "model");
+            if (fieldModel != null && hasText(fieldModel.toString())) {
+                return fieldModel.toString().trim();
+            }
+        }
+
+        return null;
+    }
+
+    private Object invokeGetter(Object source, String methodName) {
+        try {
+            Method method = source.getClass().getMethod(methodName);
+            return method.invoke(source);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String invokeStringGetter(Object source, String methodName) {
+        Object value = invokeGetter(source, methodName);
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private Object readField(Object source, String fieldName) {
+        Class<?> type = source.getClass();
+        while (type != null) {
+            try {
+                Field field = type.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field.get(source);
+            } catch (Exception ignored) {
+                type = type.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private String buildOperatorHint(String errorMessage) {
