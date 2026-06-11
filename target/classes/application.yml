@@ -35,9 +35,9 @@ spring:
           model: ${OLLAMA_MODEL:llama3.1:8b-instruct-q4_0}
           temperature: ${OLLAMA_TEMPERATURE:0.3}
 
-# LLM Provider Selection (openai or ollama)
+# LLM Provider Selection (openai, ollama, or none)
 llm:
-  provider: ${LLM_PROVIDER:openai}
+  provider: ${LLM_PROVIDER:none}
   system-prompt: |
     You are an expert Islamic scholar AI assistant specialized in detecting Islamophobia and hate speech against Islam.
     Your knowledge base includes the Quran and authentic Hadith collections.

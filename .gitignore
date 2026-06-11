@@ -1,11 +1,102 @@
 ```
-# Build artifacts
-target/
-frontend/generated/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.jar
+*.war
+*.ear
+*.so
+*.dll
+*.exe
+*.out
+*.a
 
 # Dependencies
 node_modules/
+venv/
+.venv/
+.env
+.env.local
+.env.*
 
-# Logs
+# Java/Maven specific
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.jsp
+!target/classes/application.yml
+target/
+
+# Build and distribution
+dist/
+build/
+*.tar
+*.tar.gz
+*.zip
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+
+# Logs and temp files
 *.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.~
+*~
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing and coverage
+coverage/
+htmlcov/
+.coverage
+*.coverage
+.pytest_cache/
+.mypy_cache/
+.nyc_output/
+coverage-final.json
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*
+!.env.example
+
+# Frontend generated files
+frontend/generated/
 ```

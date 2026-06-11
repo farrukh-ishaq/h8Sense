@@ -11,6 +11,7 @@
 /workspace/src/main/java/com/islamophobia/detector/service/ContentAnalysisService.java
 /workspace/src/main/java/com/islamophobia/detector/model/enums/ViolationCategory.java
 /workspace/src/main/java/com/islamophobia/detector/repository/ContentItemRepository.java
+/workspace/src/main/java/com/islamophobia/detector/config/MockChatModel.java
 /workspace/src/main/java/com/islamophobia/detector/repository/ContentAnalysisRepository.java
 /workspace/src/main/java/com/islamophobia/detector/model/dto/FeedbackResponse.java
 /workspace/src/main/java/com/islamophobia/detector/model/dto/FeedbackRequest.java

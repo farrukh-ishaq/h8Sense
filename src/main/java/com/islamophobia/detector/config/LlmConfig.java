@@ -36,7 +36,7 @@ public class LlmConfig {
     private String llmProvider;
 
     /**
-     * Primary ChatModel bean - switches between OpenAI and Ollama based on configuration
+     * Primary ChatModel bean - switches between OpenAI, Ollama, or Mock based on configuration
      */
     @Bean
     @Primary
@@ -51,7 +51,16 @@ public class LlmConfig {
                     .temperature(0.3)
                     .build())
                 .build();
+        } else if ("none".equalsIgnoreCase(llmProvider)) {
+            log.warn("LLM provider set to 'none'. AI analysis will be disabled. Set LLM_PROVIDER=openai or ollama to enable.");
+            // Return a mock/stub ChatModel that doesn't require API keys
+            return new MockChatModel();
         } else {
+            // Default to OpenAI
+            if (openAiApiKey == null || openAiApiKey.trim().isEmpty()) {
+                log.warn("OpenAI API key not set. Using mock ChatModel. Set OPENAI_API_KEY environment variable or use LLM_PROVIDER=none to suppress this warning.");
+                return new MockChatModel();
+            }
             log.info("Configuring OpenAI ChatModel with model: {}", openAiModel);
             OpenAiApi openAiApi = new OpenAiApi(openAiApiKey);
             return new OpenAiChatModel(openAiApi, OpenAiChatOptions.builder()

@@ -71,6 +71,8 @@ public class ContentAnalysisService {
             .analyzedAt(Instant.now())
             .build();
 
+        // Save analysis - the contentItem is already saved, so set it explicitly
+        analysis.setContentItem(savedContent);
         return analysisRepository.save(analysis);
     }
 

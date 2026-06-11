@@ -12,6 +12,7 @@ com/islamophobia/detector/model/dto/FeedbackRequest.class
 com/islamophobia/detector/model/entity/ContentAnalysis.class
 com/islamophobia/detector/ui/MainView.class
 com/islamophobia/detector/config/HttpClientConfig.class
+com/islamophobia/detector/config/MockChatModel.class
 com/islamophobia/detector/model/entity/UserFeedback$UserFeedbackBuilder.class
 com/islamophobia/detector/repository/ContentAnalysisRepository.class
 com/islamophobia/detector/model/dto/FeedbackRequest$FeedbackRequestBuilder.class
