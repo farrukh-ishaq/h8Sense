@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -33,18 +33,6 @@ services:
         condition: service_healthy
     env_file:
       - ../.env
-    environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/islamophobia_detector
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OLLAMA_HOST: ${OLLAMA_HOST:-http://localhost:11434}
-      LLM_PROVIDER: ${LLM_PROVIDER:-none}
-      SERVER_PORT: 8080
-      LOG_LEVEL_ROOT: INFO
-      LOG_LEVEL_APP: DEBUG
-      JPA_DDL_AUTO: update
-      SHOW_SQL: "false"
     ports:
       - "8080:8080"
     volumes:
@@ -63,7 +51,7 @@ services:
     image: prom/prometheus:latest
     container_name: islamophobia-prometheus
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -79,12 +67,11 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: islamophobia-grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin123
+    env_file:
+      - ../.env
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning:/etc/grafana/provisioning
     ports:
       - "3000:3000"
     depends_on:
@@ -96,8 +83,8 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: islamophobia-jaeger
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
+    env_file:
+      - ../.env
     ports:
       - "16686:16686"  # UI
       - "4317:4317"    # OTLP gRPC
