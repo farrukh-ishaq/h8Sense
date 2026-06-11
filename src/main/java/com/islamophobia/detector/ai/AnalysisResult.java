@@ -1,6 +1,7 @@
 package com.islamophobia.detector.ai;
 
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -20,7 +21,7 @@ public class AnalysisResult {
     /**
      * Confidence score (0.0 to 1.0)
      */
-    private Double confidence;
+    private BigDecimal confidence;
     
     /**
      * Category of violation

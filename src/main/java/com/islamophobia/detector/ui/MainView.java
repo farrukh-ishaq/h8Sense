@@ -95,7 +95,7 @@ public class MainView extends VerticalLayout {
             .setFlexGrow(2);
         violationsGrid.addColumn(a -> a.getContentItem().getSourcePlatform())
             .setHeader("Platform");
-        violationsGrid.addColumn(a -> String.format("%.1f%%", a.getViolationConfidence() * 100))
+        violationsGrid.addColumn(a -> String.format("%.1f%%", a.getViolationConfidence().doubleValue() * 100))
             .setHeader("Confidence");
         violationsGrid.addColumn(a -> a.getCategory().name())
             .setHeader("Category");
@@ -156,7 +156,7 @@ public class MainView extends VerticalLayout {
         Div content = new Div();
         content.add(new Paragraph("📝 Content: " + analysis.getContentItem().getContent()));
         content.add(new Paragraph("🏷️ Category: " + analysis.getCategory()));
-        content.add(new Paragraph("✅ Confidence: " + String.format("%.1f%%", analysis.getViolationConfidence() * 100)));
+        content.add(new Paragraph("✅ Confidence: " + String.format("%.1f%%", analysis.getViolationConfidence().doubleValue() * 100)));
         content.add(new Paragraph("📖 Explanation: " + analysis.getViolationExplanation()));
         content.add(new Paragraph("💬 Counter-argument: " + analysis.getCounterArgument()));
         

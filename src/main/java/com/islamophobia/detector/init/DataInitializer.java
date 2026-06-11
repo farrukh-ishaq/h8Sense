@@ -150,7 +150,7 @@ public class DataInitializer implements CommandLineRunner {
         analysis.setContentItem(item);
         analysis.setConfirmedViolation(isViolation);
         analysis.setCategory(category);
-        analysis.setViolationConfidence(confidence);
+        analysis.setViolationConfidence(java.math.BigDecimal.valueOf(confidence));
         analysis.setViolationExplanation(explanation);
         analysis.setCounterArgument(scholarlyRefutation);
         analysis.setAnalyzedAt(java.time.Instant.now());

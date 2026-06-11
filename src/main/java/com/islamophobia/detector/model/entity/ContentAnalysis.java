@@ -3,6 +3,7 @@ package com.islamophobia.detector.model.entity;
 import com.islamophobia.detector.model.enums.ViolationCategory;
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +51,7 @@ public class ContentAnalysis {
      * Confidence score (0.0 to 1.0)
      */
     @Column(nullable = false, precision = 4, scale = 3)
-    private Double violationConfidence;
+    private BigDecimal violationConfidence;
 
     /**
      * Detailed explanation of why it is/isn't a violation
@@ -127,7 +128,7 @@ public class ContentAnalysis {
             hadithReferences = new ArrayList<>();
         }
         if (violationConfidence == null) {
-            violationConfidence = 0.0;
+            violationConfidence = BigDecimal.ZERO;
         }
     }
 }
