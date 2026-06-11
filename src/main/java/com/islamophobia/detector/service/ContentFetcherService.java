@@ -9,6 +9,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -41,17 +44,24 @@ public class ContentFetcherService {
     private final Set<String> processedUrls = ConcurrentHashMap.newKeySet();
 
     // Default RSS feeds for Islam-related news and discussions
+    // Removed Twitter blog feed as it's protected by Cloudflare and not relevant for hate speech detection
     private static final List<String> DEFAULT_RSS_FEEDS = List.of(
-        // News outlets
+        // Major news outlets with comprehensive world coverage
         "https://www.aljazeera.com/xml/rss/all.xml",
         "https://feeds.reuters.com/reuters/worldNews",
         "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         "https://feeds.bbci.co.uk/news/world/rss.xml",
-        // Tech/Social media monitoring
-        "https://blog.twitter.com/en_us/topics/company/rss.xml",
-        // Islamic news sources
+        "https://www.theguardian.com/world/rss",
+        "https://www.washingtonpost.com/rss/world",
+        "https://www.cnn.com/services/rss/",
+        // Islamic news and community sources
         "https://www.islamicity.org/feed/",
-        "https://muslimmatters.org/feed/"
+        "https://muslimmatters.org/feed/",
+        "https://www.islamweb.net/en/rss/index.xml",
+        "https://www.yaqeeninstitute.org/feed/",
+        // Human rights and religious freedom monitoring
+        "https://www.hrw.org/rss/releases/religious-freedom",
+        "https://www.state.gov/feed/"
     );
 
     // Keywords to identify potentially relevant content
@@ -86,13 +96,30 @@ public class ContentFetcherService {
      */
     private void fetchAndProcessRssFeed(String feedUrl) {
         try {
-            String feedContent = restTemplate.getForObject(feedUrl, String.class);
+            log.info("Fetching RSS feed: {}", feedUrl);
+            
+            // Set up headers to mimic a browser request
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+            headers.set("Accept", "application/rss+xml, application/xml, text/xml, */*");
+            headers.set("Accept-Language", "en-US,en;q=0.9");
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            String feedContent = restTemplate.exchange(feedUrl, org.springframework.http.HttpMethod.GET, entity, String.class).getBody();
+            
             if (feedContent == null || feedContent.isEmpty()) {
                 log.warn("Empty response from RSS feed: {}", feedUrl);
                 return;
             }
 
-            Document doc = Jsoup.parse(feedContent);
+            // Check if response is HTML (Cloudflare protection or error page)
+            if (feedContent.trim().startsWith("<!DOCTYPE html>") || feedContent.trim().startsWith("<html")) {
+                log.warn("Received HTML instead of XML from {}. Possible Cloudflare protection or error page. Skipping.", feedUrl);
+                return;
+            }
+
+            Document doc = Jsoup.parse(feedContent, "", org.jsoup.parser.Parser.xmlParser());
             List<Element> items = doc.select("item");
 
             log.info("Found {} items in RSS feed: {}", items.size(), feedUrl);
@@ -101,8 +128,12 @@ public class ContentFetcherService {
                 processRssItem(item, feedUrl);
             }
 
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP client error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            log.error("HTTP server error fetching RSS feed {}: {} - Skipping this feed", feedUrl, e.getStatusCode());
         } catch (Exception e) {
-            log.error("Failed to parse RSS feed {}: {}", feedUrl, e.getMessage(), e);
+            log.error("Failed to parse RSS feed {}: {} - Skipping", feedUrl, e.getMessage());
         }
     }
 
